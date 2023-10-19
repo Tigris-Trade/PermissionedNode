@@ -119,7 +119,15 @@ class App {
             } else {
                 res.status(200).json({ message: "OK" });
             }
-        })
+        });
+
+        this.app.get("/gas", async (req, res) => {
+            if (this.isGettingReady) {
+                res.status(503).json({ reason: "Node not ready yet!" });
+                return;
+            }
+            res.status(200).json(this.accountGasBalance);
+        });
 
         this.oracleSocket = socketio(
             new Date().getTimezoneOffset() > 120 ?
@@ -236,6 +244,7 @@ class App {
         this.forwarderContract = {};
         this.nonces = {};
         this.gasBalances = {};
+        this.accountGasBalance = {};
         this.pendingUpdateNonce = {42161: {}, 137: {}};
         this.keyIndex = 0;
         this.setup();
@@ -288,11 +297,12 @@ class App {
                 let minGasBalance = 1000000;
                 for (const account in this.signers[chainId]) {
                     const address = await this.signers[chainId][account].getAddress();
-                    const balance = Number(
+                    let balance =
                         ethers.formatEther(
                             await this.providers[chainId].getBalance(address)
-                        )
-                    );
+                        );
+                    this.accountGasBalance[chainId][address] = balance;
+                    balance = Number(balance);
                     if (chainId === 42161) {
                         if (balance < 0.02) {
                             console.log("WARNING: Address " + address + " is running low on gas on ARBITRUM! Only " + balance + " ETH left!");
@@ -331,6 +341,7 @@ class App {
         
         for (const chainId of networkIds) {
             this.forwarderContract[chainId] = {};
+            this.accountGasBalance[chainId] = {};
 
             let rpc = this.rpcs[chainId];
             this.providers[chainId] = new ethers.JsonRpcProvider(rpc);
