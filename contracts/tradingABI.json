@@ -28,7 +28,7 @@
       },
       {
         "internalType": "address",
-        "name": "_gasStorage",
+        "name": "_referrals",
         "type": "address"
       }
     ],
@@ -1043,25 +1043,6 @@
   {
     "inputs": [
       {
-        "internalType": "address",
-        "name": "_forwarder",
-        "type": "address"
-      }
-    ],
-    "name": "isTrustedForwarder",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
         "internalType": "uint256",
         "name": "_id",
         "type": "uint256"
@@ -1634,19 +1615,6 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "_gas",
-        "type": "uint256"
-      }
-    ],
-    "name": "setGasStorageCallGas",
-    "outputs": [],
-    "stateMutability": "payable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
         "name": "_percent",
         "type": "uint256"
       }
@@ -1753,11 +1721,6 @@
         "internalType": "address",
         "name": "_forwarder",
         "type": "address"
-      },
-      {
-        "internalType": "bool",
-        "name": "_bool",
-        "type": "bool"
       }
     ],
     "name": "setTrustedForwarder",
@@ -1789,6 +1752,19 @@
     "name": "transferOwnership",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "trustedForwarder",
+    "outputs": [
+      {
+        "internalType": "contract IPermissionedForwarder",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {

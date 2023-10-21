@@ -14,12 +14,12 @@ class App {
     constructor() {
 
         this.forwarderAddress = {
-            42161: "0x25bfA3537845f778011fF0702B94A1A5112bA5ac",
-            137: "0x6e856d9A9CeB534BB4BDa8D42b3Ea6B00d8Cc914"
+            42161: "0xa07B2C5383e82Af5497E1b7881CF0E76d4435E54",
+            137: "0x146acE76931fd47C7e44523EdF48163944b45fE0"
         };
         this.tradingAddress = {
-            42161: "0x65A57049E956d3aFbc058ae8B02ed068F1a8E10B",
-            137: "0x6b5EbD3148a43ab2954Db04eEF4B613eA542038E"
+            42161: "0x18e285202856128C63AdD907650Fc9cB4Bcd4495",
+            137: "0xA35eabB4be62Ed07E88c2aF73234fe7dD48a73D4"
         }
 
         this.rpcs = {
