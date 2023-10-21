@@ -15,11 +15,11 @@ class App {
 
         this.forwarderAddress = {
             42161: "0x25bfA3537845f778011fF0702B94A1A5112bA5ac",
-            137: "0x8a33D93B88318a144Db39bEac81446A40FE10c35"
+            137: "0x6e856d9A9CeB534BB4BDa8D42b3Ea6B00d8Cc914"
         };
         this.tradingAddress = {
             42161: "0x65A57049E956d3aFbc058ae8B02ed068F1a8E10B",
-            137: "0x278a29098EF8c2Af6b948D079C32b54188b618F0"
+            137: "0x6b5EbD3148a43ab2954Db04eEF4B613eA542038E"
         }
 
         this.rpcs = {
