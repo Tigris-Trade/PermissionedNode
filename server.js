@@ -14,9 +14,13 @@ class App {
     constructor() {
 
         this.forwarderAddress = {
-            42161: "0xe377cF870DC4FB6f9E04AaaFc0fEe096508b287F",
+            42161: "0x25bfA3537845f778011fF0702B94A1A5112bA5ac",
             137: "0x8a33D93B88318a144Db39bEac81446A40FE10c35"
         };
+        this.tradingAddress = {
+            42161: "0x65A57049E956d3aFbc058ae8B02ed068F1a8E10B",
+            137: "0x278a29098EF8c2Af6b948D079C32b54188b618F0"
+        }
 
         this.rpcs = {
             42161: process.env.ARBITRUM_RPC_URL,
@@ -198,6 +202,10 @@ class App {
             // Check that deadline is not in the past
             if (req.body.deadline < Math.ceil(Date.now() / 1000)) {
                 res.status(400).json({reason: "Request deadline passed!"});
+                return;
+            }
+            if (req.body.to !== this.tradingAddress[req.body.chainId]) {
+                res.status(400).json({reason: "Invalid trading contract address!"});
                 return;
             }
             if (req.body.pairId) {
