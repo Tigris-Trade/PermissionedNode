@@ -14,8 +14,8 @@ class App {
     constructor() {
 
         this.forwarderAddress = {
-            42161: "0xa07B2C5383e82Af5497E1b7881CF0E76d4435E54",
-            137: "0x146acE76931fd47C7e44523EdF48163944b45fE0"
+            42161: "0x364d6501290fD540910972c70E405f61F56986F8",
+            137: "0x2eE24B6204Cb59668aE2CaBa49fB5D5b4650F1FE"
         };
         this.tradingAddress = {
             42161: "0x18e285202856128C63AdD907650Fc9cB4Bcd4495",
