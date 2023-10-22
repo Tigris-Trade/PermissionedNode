@@ -164,11 +164,11 @@ class App {
 
         this.app.post('/execute', async (req, res) => {
             if (this.isGettingReady) {
-                res.status(503).json({ reason: "Node not ready yet!" });
+                res.status(503).json({reason: "Node not ready yet!"});
                 return;
             }
             if (this.gasBalances[42161] < 0.02 || this.gasBalances[137] < 10) {
-                res.status(503).json({ reason: "Node low on gas!" });
+                res.status(503).json({reason: "Node low on gas!"});
                 return;
             }
             // Check that request has only the required fields
@@ -180,8 +180,7 @@ class App {
                 !req.body.hasOwnProperty("data") ||
                 !req.body.hasOwnProperty("signature") ||
                 !req.body.hasOwnProperty("orderType") ||
-                !req.body.hasOwnProperty("chainId") ||
-                !req.body.hasOwnProperty("pairId")
+                !req.body.hasOwnProperty("chainId")
             ) {
                 res.status(400).json({reason: "Data missing in request!"});
                 return;
@@ -221,13 +220,15 @@ class App {
                 res.status(400).json({reason: "Invalid contract address!"});
                 return;
             }
-            if (!this.latestPriceData[req.body.pairId]) {
-                res.status(400).json({reason: "Unknown pair ID!"});
-                return;
-            } else {
-                if (this.latestPriceData[req.body.pairId].is_closed) {
-                    res.status(400).json({reason: "Market is closed!"});
+            if (req.body.pairId) {
+                if (!this.latestPriceData[req.body.pairId]) {
+                    res.status(400).json({reason: "Unknown pair ID!"});
                     return;
+                } else {
+                    if (this.latestPriceData[req.body.pairId].is_closed) {
+                        res.status(400).json({reason: "Market is closed!"});
+                        return;
+                    }
                 }
             }
             // Check that signature is valid
@@ -250,7 +251,7 @@ class App {
             ];
             const signature = req.body.signature;
             const result = await this.execute(request, signature, orderType, req.body.chainId, req.body.pairId);
-            if (result.receipt.status === 1) {
+            if (result.reason) {
                 res.status(200).json(result);
             } else {
                 res.status(400).json(result);
@@ -444,6 +445,9 @@ class App {
         const values = [forwardRequest, signature]
 
         if (func === "executeWithPrice") {
+            if (!pairId) {
+                return {receipt: null, reason: "Pair ID not provided."};
+            }
             const PriceData = this.latestPriceData[pairId];
             if (!PriceData) {
                 console.log("ERROR: Price data not found!");
