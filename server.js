@@ -3,6 +3,7 @@ const ethers = require('ethers');
 const socketio = require("socket.io-client");
 const forwarderABI = require("./contracts/forwarderABI.json");
 const tradingABI = require("./contracts/tradingABI.json");
+const optionsABI = require("./contracts/optionsABI.json");
 const cors = require('cors');
 
 require('dotenv').config();
@@ -20,6 +21,10 @@ class App {
         this.tradingAddress = {
             42161: "0x18e285202856128C63AdD907650Fc9cB4Bcd4495",
             137: "0xA35eabB4be62Ed07E88c2aF73234fe7dD48a73D4"
+        }
+        this.optionsAddress = {
+            42161: "0x8895b0B946b3d5bCd7D1E9E31DCfaeB51644922A",
+            137: "0xFeABeC2CaC8A1A2f1C0c181572aA88c8b91288B2"
         }
 
         this.rpcs = {
@@ -175,13 +180,15 @@ class App {
                 !req.body.hasOwnProperty("data") ||
                 !req.body.hasOwnProperty("signature") ||
                 !req.body.hasOwnProperty("orderType") ||
-                !req.body.hasOwnProperty("chainId")
+                !req.body.hasOwnProperty("chainId") ||
+                !req.body.hasOwnProperty("pairId")
             ) {
                 res.status(400).json({reason: "Data missing in request!"});
                 return;
             }
             // Check that orderType is valid
             if (
+                // Leverage
                 req.body.orderType !== "marketOpen" &&
                 req.body.orderType !== "marketClose" &&
                 req.body.orderType !== "createLimitOrder" &&
@@ -189,7 +196,10 @@ class App {
                 req.body.orderType !== "addMargin" &&
                 req.body.orderType !== "removeMargin" &&
                 req.body.orderType !== "cancelLimitOrder" &&
-                req.body.orderType !== "updateTpSl"
+                req.body.orderType !== "updateTpSl" &&
+                // Options
+                req.body.orderType !== "openTrade" &&
+                req.body.orderType !== "initiateLimitOrder"
             ) {
                 res.status(400).json({reason: "Unknown order type!"});
                 return;
@@ -204,19 +214,20 @@ class App {
                 res.status(400).json({reason: "Request deadline passed!"});
                 return;
             }
-            if (req.body.to !== this.tradingAddress[req.body.chainId]) {
-                res.status(400).json({reason: "Invalid trading contract address!"});
+            if (
+                req.body.to !== this.tradingAddress[req.body.chainId] ||
+                req.body.to !== this.optionsAddress[req.body.chainId]
+            ) {
+                res.status(400).json({reason: "Invalid contract address!"});
                 return;
             }
-            if (req.body.pairId) {
-                if (!this.latestPriceData[req.body.pairId]) {
-                    res.status(400).json({reason: "Unknown pair ID!"});
+            if (!this.latestPriceData[req.body.pairId]) {
+                res.status(400).json({reason: "Unknown pair ID!"});
+                return;
+            } else {
+                if (this.latestPriceData[req.body.pairId].is_closed) {
+                    res.status(400).json({reason: "Market is closed!"});
                     return;
-                } else {
-                    if (this.latestPriceData[req.body.pairId].is_closed) {
-                        res.status(400).json({reason: "Market is closed!"});
-                        return;
-                    }
                 }
             }
             // Check that signature is valid
@@ -265,7 +276,15 @@ class App {
     }
 
     checkAbi(data, orderType) {
-        const tradingInterface = new ethers.Interface(tradingABI);
+        let contractInterface;
+        if (
+            orderType === "openTrade" ||
+            orderType === "initiateLimitOrder"
+        ) {
+            contractInterface = new ethers.Interface(optionsABI);
+        } else {
+            contractInterface = new ethers.Interface(tradingABI);
+        }
 
         let EMPTY_PRICE_DATA_BYTES = ethers.AbiCoder.defaultAbiCoder().encode(
             ["tuple(address,bool,uint256,uint256,uint256,uint256,bytes)"],
@@ -280,7 +299,7 @@ class App {
         const concatData = data + EMPTY_PRICE_DATA_BYTES.slice(2);
 
         try {
-            tradingInterface.decodeFunctionData(orderType, concatData);
+            contractInterface.decodeFunctionData(orderType, concatData);
             return true;
         } catch (err) {
             console.log(err);
@@ -414,15 +433,21 @@ class App {
             case "updateTpSl":
                 func = "executeWithPrice";
                 break;
+            case "openTrade":
+                func = "executeWithPrice";
+                break;
+            case "initiateLimitOrder":
+                func = "executeWithoutPrice";
+                break;
         }
 
         const values = [forwardRequest, signature]
 
-        if (func === "executeWithPrice" || pairId) {
+        if (func === "executeWithPrice") {
             const PriceData = this.latestPriceData[pairId];
             if (!PriceData) {
                 console.log("ERROR: Price data not found!");
-                return;
+                return {receipt: null, reason: "Node failed to get price data."};
             }
             values.push([
                 PriceData.provider,
