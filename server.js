@@ -445,7 +445,7 @@ class App {
         const values = [forwardRequest, signature]
 
         if (func === "executeWithPrice") {
-            if (!pairId) {
+            if (pairId === undefined || pairId === null) {
                 return {receipt: null, reason: "Pair ID not provided."};
             }
             const PriceData = this.latestPriceData[pairId];
