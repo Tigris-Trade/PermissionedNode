@@ -251,7 +251,7 @@ class App {
             ];
             const signature = req.body.signature;
             const result = await this.execute(request, signature, orderType, req.body.chainId, req.body.pairId);
-            if (result.reason) {
+            if (!result.reason) {
                 res.status(200).json(result);
             } else {
                 res.status(400).json(result);
