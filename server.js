@@ -215,7 +215,7 @@ class App {
                 return;
             }
             if (
-                req.body.to !== this.tradingAddress[req.body.chainId] ||
+                req.body.to !== this.tradingAddress[req.body.chainId] &&
                 req.body.to !== this.optionsAddress[req.body.chainId]
             ) {
                 res.status(400).json({reason: "Invalid contract address!"});
