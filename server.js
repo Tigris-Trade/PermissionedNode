@@ -5,8 +5,15 @@ const forwarderABI = require("./contracts/forwarderABI.json");
 const tradingABI = require("./contracts/tradingABI.json");
 const optionsABI = require("./contracts/optionsABI.json");
 const cors = require('cors');
+const https= require("https")
+const fs= require("fs");
 
 require('dotenv').config();
+
+const sslOptions = {
+    key: process.env.SSL_KEY_PATH && fs.readFileSync(process.env.SSL_KEY_PATH),
+    cert: process.env.SSL_CERT_PATH && fs.readFileSync(process.env.SSL_CERT_PATH)
+};
 
 const EMPTY_PRICE_DATA = ["0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", false, 0, 0, 0, 0, ethers.zeroPadBytes("0x", 65)];
 
@@ -93,6 +100,13 @@ class App {
         this.app.listen(PORT, () => {
             console.log(`INFO: Server started on port ${PORT}`);
         });
+
+        if (
+            sslOptions.key !== undefined &&
+            sslOptions.cert !== undefined
+        ) {
+            https.createServer(sslOptions, this.app).listen(443);
+        }
 
         this.app.get("/name", async (req, res) => {
             if (this.isGettingReady) {
