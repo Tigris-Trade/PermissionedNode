@@ -288,7 +288,7 @@ class App {
             this.updateGasBalance();
         }, 60000);
         this.updateNonceInterval = setInterval(() => {
-            this.updateNonce();
+            this.updateNonces();
         }, 60000);
     }
 
