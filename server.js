@@ -279,7 +279,6 @@ class App {
         this.nonces = {};
         this.gasBalances = {};
         this.accountGasBalance = {};
-        this.pendingUpdateNonce = {42161: {}, 137: {}};
         this.keyIndex = 0;
         this.setup();
         this.updateGasPriceInterval = setInterval(() => {
@@ -287,6 +286,9 @@ class App {
         }, 10000);
         this.updateGasBalancesInterval = setInterval(() => {
             this.updateGasBalance();
+        }, 60000);
+        this.updateNonceInterval = setInterval(() => {
+            this.updateNonce();
         }, 60000);
     }
 
@@ -374,6 +376,15 @@ class App {
         }
     }
 
+    async updateNonces() {
+        for (const chainId of [42161, 137]) {
+            for (const account in this.signers[chainId]) {
+                const address = await this.signers[chainId][account].getAddress();
+                this.nonces[chainId][address] = await this.providers[chainId].getTransactionCount(address);
+            }
+        }
+    }
+
     async setup() {
         console.log("INFO: Setting up node...");
         setTimeout(() => {
@@ -405,17 +416,9 @@ class App {
         console.log("INFO: Node is ready!");
     }
 
-    async updateNonce(chainId, signer) {
-        const provider = this.providers[chainId];
-        const account = await signer.getAddress();
-        this.nonces[chainId][account] = await provider.getTransactionCount(await signer.getAddress());
-    }
-
     async execute(forwardRequest, signature, orderType, chainId, pairId) {
 
         const keyIndex = this.keyIndex++%10;
-
-        clearTimeout(this.pendingUpdateNonce[chainId][keyIndex]);
 
         const contract = this.forwarderContract[chainId][keyIndex];
 
@@ -495,9 +498,6 @@ class App {
             const transactionHash = await provider.send('eth_sendRawTransaction', [signedTransaction]);
 
             this.nonces[chainId][keyIndex]++;
-            this.pendingUpdateNonce[chainId][keyIndex] = setTimeout(() => {
-                this.updateNonce(chainId, signer);
-            }, 20000);
 
             const receipt = await provider.waitForTransaction(transactionHash);
             if (receipt.logs.length === 0 || (chainId === 137 && receipt.logs.length === 1)) {
