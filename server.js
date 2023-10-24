@@ -325,8 +325,8 @@ class App {
     async updateGasPrice() {
         try {
             this.gasData = {
-                42161: Math.floor(Number((await this.providers[42161].provider.getFeeData()).gasPrice)*2.5),
-                137: Math.floor(Number((await this.providers[137].provider.getFeeData()).gasPrice)*2.5)
+                42161: Math.floor(Number((await this.providers[42161].provider.getFeeData()).gasPrice)*3),
+                137: Math.floor(Number((await this.providers[137].provider.getFeeData()).gasPrice)*3)
             }
         } catch(err) {
             console.log(err);
