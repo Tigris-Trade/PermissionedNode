@@ -35,7 +35,7 @@ class App {
         }
         this.gasLimits = {
             42161: 10000000,
-            137: 4000000
+            137: 3000000
         }
 
         this.rpcs = {
