@@ -486,7 +486,7 @@ class App {
             to: await contract.getAddress(),
             chainId: chainId,
             nonce: this.nonces[chainId][keyIndex],
-            gasLimit: 10000000,
+            gasLimit: 6000000,
             maxFeePerGas: this.gasData[chainId],
             maxPriorityFeePerGas: this.gasData[chainId],
             data: contract.interface.encodeFunctionData(func, values)
