@@ -383,8 +383,12 @@ class App {
     async updateNonces() {
         for (const chainId of [42161, 137]) {
             for (const account in this.signers[chainId]) {
+                try {
                 const address = await this.signers[chainId][account].getAddress();
                 this.nonces[chainId][address] = await this.providers[chainId].getTransactionCount(address);
+                } catch(err) {
+                    console.log(err);
+                }
             }
         }
     }
