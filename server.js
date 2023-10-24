@@ -33,6 +33,10 @@ class App {
             42161: "0x8895b0B946b3d5bCd7D1E9E31DCfaeB51644922A",
             137: "0xFeABeC2CaC8A1A2f1C0c181572aA88c8b91288B2"
         }
+        this.gasLimits = {
+            42161: 10000000,
+            137: 4000000
+        }
 
         this.rpcs = {
             42161: process.env.ARBITRUM_RPC_URL,
@@ -486,7 +490,7 @@ class App {
             to: await contract.getAddress(),
             chainId: chainId,
             nonce: this.nonces[chainId][keyIndex],
-            gasLimit: 6000000,
+            gasLimit: this.gasLimits[chainId],
             maxFeePerGas: this.gasData[chainId],
             maxPriorityFeePerGas: this.gasData[chainId],
             data: contract.interface.encodeFunctionData(func, values)
