@@ -623,7 +623,7 @@ class App {
     }
 
     async validateHash(req, chainId) {
-        const TYPEHASH = ethers.keccak256("ForwardRequest(address from,address to,bytes32 salt,uint256 deadline,bytes data)");
+        const TYPEHASH = ethers.keccak256(ethers.toUtf8Bytes("ForwardRequest(address from,address to,bytes32 salt,uint256 deadline,bytes data)"));
 
         const from = req.from;
         const to = req.to;
@@ -635,6 +635,8 @@ class App {
             ['bytes32', 'uint256', 'uint256', 'bytes32', 'uint256', 'bytes32'],
             [TYPEHASH, from, to, salt, deadline, ethers.keccak256(data)]
         );
+
+        console.log("Hash: " + hash);
 
         const forwarderContract = this.forwarderContract[chainId][0];
         const isHashUsed = await forwarderContract.usedHashes(hash);
