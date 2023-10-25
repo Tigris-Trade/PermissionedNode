@@ -527,6 +527,7 @@ class App {
                     return {receipt: receipt, reason: error.reason};
                 }
             }
+            console.log("INFO: Transaction " + transactionHash + " successful!");
             return {receipt: receipt};
         } catch(err) {
             console.log(err.reason ?? err.message);
@@ -633,8 +634,6 @@ class App {
             ["tuple(address from, address to, bytes32 salt, uint256 deadline, bytes data)"],
             [[from, to, salt, deadline, data]]
         ));
-
-        console.log("Hash: " + hash);
 
         const forwarderContract = this.forwarderContract[chainId][0];
         const isHashUsed = await forwarderContract.usedHashes(hash);
