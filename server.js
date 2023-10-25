@@ -574,16 +574,25 @@ class App {
         const validatePromises = [
             this.validateUserGasBalance(traderAddress, chainId),
             this.validateProxy(request.from, traderAddress, chainId),
+            this.validateHash(request, chainId)
         ];
         try {
             Promise.all(validatePromises).then((values) => {
-                if (values[0] && values[1]) {
-                    return true;
+                if (values[0] && values[1] && values[2]) {
+                    return {valid: true};
+                } else {
+                    if (!values[0]) {
+                        return {valid: false, reason: "Insufficient user gas balance."};
+                    }
+                    if (!values[1]) {
+                        return {valid: false, reason: "Proxy not approved."};
+                    }
+                    if (!values[2]) {
+                        return {valid: false, reason: "Hash already used."}
+                    }
                 }
             });
-        } catch {
-            return false;
-        }
+        } catch {}
         return true;
     }
 
@@ -611,6 +620,25 @@ class App {
             }
         }
         return true;
+    }
+
+    async validateHash(req, chainId) {
+        const TYPEHASH = ethers.keccak256("ForwardRequest(address from,address to,bytes32 salt,uint256 deadline,bytes data)");
+
+        const from = req.from;
+        const to = req.to;
+        const salt = req.salt;
+        const deadline = req.deadline;
+        const data = req.data;
+
+        const hash = ethers.solidityPackedKeccak256(
+            ['bytes32', 'uint256', 'uint256', 'bytes32', 'uint256', 'bytes32'],
+            [TYPEHASH, from, to, salt, deadline, ethers.keccak256(data)]
+        );
+
+        const forwarderContract = this.forwarderContract[chainId][0];
+        const isHashUsed = await forwarderContract.usedHashes(hash);
+        return !isHashUsed;
     }
 }
 
