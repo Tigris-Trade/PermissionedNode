@@ -7,6 +7,7 @@ const optionsABI = require("./contracts/optionsABI.json");
 const cors = require('cors');
 const https= require("https")
 const fs= require("fs");
+const {getBigInt} = require("ethers");
 
 require('dotenv').config();
 
@@ -259,6 +260,11 @@ class App {
                 res.status(400).json({reason: "Request data does not match ABI!"});
                 return;
             }
+            // Check chain state
+            if (!(await this.validateState(req.body))) {
+                res.status(400).json({reason: "Not enough gas funded!"});
+                return;
+            }
             const orderType = req.body.orderType;
             const request = [
                 req.body.from,
@@ -323,7 +329,7 @@ class App {
             contractInterface.decodeFunctionData(orderType, concatData);
             return true;
         } catch (err) {
-            console.log(err);
+            console.log(err.reason ?? err.message);
             return false;
         }
     }
@@ -335,7 +341,7 @@ class App {
                 137: Math.floor(Number((await this.providers[137].provider.getFeeData()).gasPrice)*3)
             }
         } catch(err) {
-            console.log(err);
+            console.log(err.reason ?? err.message);
         }
     }
 
@@ -376,7 +382,7 @@ class App {
                 this.gasBalances[chainId] = minGasBalance;
             }
         } catch(err) {
-            console.log(err);
+            console.log(err.reason ?? err.message);
         }
     }
 
@@ -387,7 +393,7 @@ class App {
                 const address = await this.signers[chainId][account].getAddress();
                 this.nonces[chainId][address] = await this.providers[chainId].getTransactionCount(address);
                 } catch(err) {
-                    console.log(err);
+                    console.log(err.reason ?? err.message);
                 }
             }
         }
@@ -523,7 +529,7 @@ class App {
             }
             return {receipt: receipt};
         } catch(err) {
-            console.log(err);
+            console.log(err.reason ?? err.message);
             return {receipt: null, reason: "Node failed to send transaction."};
         }
     }
@@ -560,6 +566,51 @@ class App {
             return false;
         }
         return recoveredAddress === request.from;
+    }
+
+    async validateState(request) {
+        const chainId = request.chainId;
+        const traderAddress = '0x' + request.data.slice(-40);
+        const validatePromises = [
+            this.validateUserGasBalance(traderAddress, chainId),
+            this.validateProxy(request.from, traderAddress, chainId),
+        ];
+        try {
+            Promise.all(validatePromises).then((values) => {
+                if (values[0] && values[1]) {
+                    return true;
+                }
+            });
+        } catch {
+            return false;
+        }
+        return true;
+    }
+
+    async validateUserGasBalance(trader, chainId) {
+        const forwarderContract = this.forwarderContract[chainId][0];
+
+        // Check if the forwarder.userGas(trader) is enough
+        const userGas = await forwarderContract.userGas(trader);
+        if (userGas < getBigInt(this.gasLimits[chainId]) * getBigInt(this.gasData[chainId] / 2)) {
+            return false;
+        }
+        return true;
+    }
+
+    async validateProxy(from, trader, chainId) {
+        if (from !== trader) {
+            const provider = this.providers[chainId];
+            const tradingAddress = this.tradingAddress[chainId];
+            const tradingContract = new ethers.Contract(tradingAddress, tradingABI, provider);
+
+            // check that trading.proxyApprovals(trader) == request.from
+            const proxyApproval = await tradingContract.proxyApprovals(trader);
+            if (proxyApproval !== trader) {
+                return false;
+            }
+        }
+        return true;
     }
 }
 
