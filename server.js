@@ -630,8 +630,8 @@ class App {
         const data = req.data;
 
         const hash = ethers.keccak256(ethers.AbiCoder.defaultAbiCoder().encode(
-            ["address", "address", "bytes32", "uint256", "bytes"],
-            [from, to, salt, deadline, data]
+            ["tuple(address from, address to, bytes32 salt, uint256 deadline, bytes data)"],
+            [[from, to, salt, deadline, data]]
         ));
 
         console.log("Hash: " + hash);
