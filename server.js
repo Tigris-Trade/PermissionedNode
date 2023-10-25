@@ -27,7 +27,7 @@ class App {
             137: "0x17eE6D3ec827863119698D125EFB3200B49e90c6"
         };
         this.tradingAddress = {
-            42161: "0x18e285202856128C63AdD907650Fc9cB4Bcd4495",
+            42161: "0xd89B4B1C8918150f137cc68E83E3876F9e309aB9",
             137: "0xA35eabB4be62Ed07E88c2aF73234fe7dD48a73D4"
         }
         this.optionsAddress = {
