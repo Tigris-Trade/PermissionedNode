@@ -44,6 +44,11 @@ class App {
             137: process.env.POLYGON_RPC_URL
         }
 
+        this.publicRpcs = {
+            42161: "https://arb1.arbitrum.io/rpc",
+            137: "https://polygon-rpc.com"
+        }
+
         this.privs = [
             process.env[`PRIVATE_KEY_0`],
             process.env[`PRIVATE_KEY_1`],
@@ -284,6 +289,7 @@ class App {
 
         this.isGettingReady = true;
         this.providers = {};
+        this.publicProviders = {};
         this.signers = {};
         this.forwarderContract = {};
         this.nonces = {};
@@ -411,7 +417,9 @@ class App {
             this.accountGasBalance[chainId] = {};
 
             let rpc = this.rpcs[chainId];
+            let publicRpc = this.publicRpcs[chainId];
             this.providers[chainId] = new ethers.JsonRpcProvider(rpc);
+            this.publicProviders[chainId] = new ethers.JsonRpcProvider(publicRpc);
             const provider = this.providers[chainId];
             this.nonces[chainId] = {};
             this.signers[chainId] = {};
@@ -436,6 +444,7 @@ class App {
 
         const contract = this.forwarderContract[chainId][keyIndex];
 
+        const publicProvider = this.publicProviders[chainId];
         const provider = this.providers[chainId];
         const signer = await this.signers[chainId][keyIndex];
 
@@ -509,7 +518,14 @@ class App {
         const signedTransaction = await signer.signTransaction(transaction);
 
         try {
-            const transactionHash = await provider.send('eth_sendRawTransaction', [signedTransaction]);
+            let transactionHash;
+            try {
+                transactionHash = await provider.send('eth_sendRawTransaction', [signedTransaction]);
+            } catch {
+                console.log("WARNING: Private RPC failed, trying public.");
+                transactionHash = await publicProvider.send('eth_sendRawTransaction', [signedTransaction]);
+            }
+
 
             this.nonces[chainId][keyIndex]++;
 
