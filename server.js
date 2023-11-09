@@ -35,7 +35,7 @@ class App {
             137: "0xFeABeC2CaC8A1A2f1C0c181572aA88c8b91288B2"
         }
         this.gasLimits = {
-            42161: 25000000,
+            42161: 35000000,
             137: 3000000
         }
 
