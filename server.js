@@ -383,7 +383,7 @@ class App {
                             console.log("WARNING: Address " + address + " is running low on gas on POLYGON! Only " + balance + " MATIC left!");
                         }
                     } else if (chainId === 82) {
-                        if (balance < 2) {
+                        if (balance < 1) {
                             console.log("WARNING: Address " + address + " is running low on gas on METER! Only " + balance + " MTR left!");
                         }
                     }
