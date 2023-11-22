@@ -24,29 +24,35 @@ class App {
 
         this.forwarderAddress = {
             42161: "0xEC75cf9a18eF82Fa7F8F2A7afAf2521cD998D757",
-            137: "0x17eE6D3ec827863119698D125EFB3200B49e90c6"
+            137: "0x17eE6D3ec827863119698D125EFB3200B49e90c6",
+            82: "0x71B3EdDD0628875C22ec49D8D1E0eEE20759945E"
         };
         this.tradingAddress = {
             42161: "0xd89B4B1C8918150f137cc68E83E3876F9e309aB9",
-            137: "0xA35eabB4be62Ed07E88c2aF73234fe7dD48a73D4"
+            137: "0xA35eabB4be62Ed07E88c2aF73234fe7dD48a73D4",
+            82: "0xD1705f847b421b6C0bb31e649fBA1983257B77D3"
         }
         this.optionsAddress = {
             42161: "0x8895b0B946b3d5bCd7D1E9E31DCfaeB51644922A",
-            137: "0xFeABeC2CaC8A1A2f1C0c181572aA88c8b91288B2"
+            137: "0xFeABeC2CaC8A1A2f1C0c181572aA88c8b91288B2",
+            82: "0xDa3662a982625e1f2649b0a1e571207C0D87B76E"
         }
         this.gasLimits = {
             42161: 15000000,
-            137: 3000000
+            137: 3000000,
+            82: 3000000
         }
 
         this.rpcs = {
             42161: process.env.ARBITRUM_RPC_URL,
-            137: process.env.POLYGON_RPC_URL
+            137: process.env.POLYGON_RPC_URL,
+            82: process.env.METER_RPC_URL
         }
 
         this.publicRpcs = {
             42161: "https://arb1.arbitrum.io/rpc",
-            137: "https://polygon-rpc.com"
+            137: "https://polygon-rpc.com",
+            82: "https://rpc.meter.io"
         }
 
         this.privs = [
@@ -82,6 +88,10 @@ class App {
 
         if (process.env["ARBITRUM_RPC_URL"] === undefined) {
             throw new Error(`MISSING ARBITRUM RPC URL.\nSET IT IN THE ".env" FILE USING ARBITRUM_RPC_URL=<arbitrum_rpc_url>.\n`);
+        }
+
+        if (process.env["METER_RPC_URL"] === undefined) {
+            throw new Error(`MISSING METER RPC URL.\nSET IT IN THE ".env" FILE USING METER_RPC_URL=<meter_rpc_url>.\n`);
         }
 
         if (process.env["DISPLAY_NAME"] === undefined) {
@@ -228,7 +238,7 @@ class App {
                 return;
             }
             // Check that chainId is valid
-            if (req.body.chainId !== 42161 && req.body.chainId !== 137) {
+            if (req.body.chainId !== 42161 && req.body.chainId !== 137 && req.body.chainId !== 82) {
                 res.status(400).json({reason: "Unsupported chain ID!"});
                 return;
             }
@@ -344,7 +354,8 @@ class App {
         try {
             this.gasData = {
                 42161: Math.floor(Number((await this.providers[42161].provider.getFeeData()).gasPrice)*3),
-                137: Math.floor(Number((await this.providers[137].provider.getFeeData()).gasPrice)*3)
+                137: Math.floor(Number((await this.providers[137].provider.getFeeData()).gasPrice)*3),
+                82: Math.floor(Number((await this.providers[82].provider.getFeeData()).gasPrice)*3)
             }
         } catch(err) {
             console.log(err.reason ?? err.message);
@@ -353,7 +364,7 @@ class App {
 
     async updateGasBalance() {
         try {
-            for (const chainId of [42161, 137]) {
+            for (const chainId of [42161, 137, 82]) {
                 let minGasBalance = 1000000;
                 for (const account in this.signers[chainId]) {
                     const address = await this.signers[chainId][account].getAddress();
@@ -371,6 +382,10 @@ class App {
                         if (balance < 10) {
                             console.log("WARNING: Address " + address + " is running low on gas on POLYGON! Only " + balance + " MATIC left!");
                         }
+                    } else if (chainId === 82) {
+                        if (balance < 2) {
+                            console.log("WARNING: Address " + address + " is running low on gas on METER! Only " + balance + " MTR left!");
+                        }
                     }
                     if (balance < minGasBalance) {
                         minGasBalance = balance;
@@ -384,6 +399,10 @@ class App {
                     if (this.gasBalances[chainId] < 0.02 && minGasBalance >= 0.02) {
                         console.log("INFO: Gas balance on ARBITRUM has recovered!");
                     }
+                } else if (chainId === 82) {
+                    if (this.gasBalances[chainId] < 10 && minGasBalance >= 10) {
+                        console.log("INFO: Gas balance on METER has recovered!");
+                    }
                 }
                 this.gasBalances[chainId] = minGasBalance;
             }
@@ -393,7 +412,7 @@ class App {
     }
 
     async updateNonces() {
-        for (const chainId of [42161, 137]) {
+        for (const chainId of [42161, 137, 82]) {
             for (const account in this.signers[chainId]) {
                 try {
                 const address = await this.signers[chainId][account].getAddress();
@@ -410,7 +429,7 @@ class App {
         setTimeout(() => {
             console.log("INFO: Do not interact with the node until it has finished setting up...");
         }, 2000);
-        const networkIds = [42161, 137];
+        const networkIds = [42161, 137, 82];
         
         for (const chainId of networkIds) {
             this.forwarderContract[chainId] = {};
