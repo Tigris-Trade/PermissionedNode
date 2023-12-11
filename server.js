@@ -637,10 +637,7 @@ class App {
 
         // Check if the forwarder.userGas(trader) is enough
         const userGas = await forwarderContract.userGas(trader);
-        if (userGas < getBigInt(this.gasLimits[chainId]) * getBigInt(this.gasData[chainId] / 2)) {
-            return false;
-        }
-        return true;
+        return getBigInt(userGas) >= getBigInt(this.gasLimits[chainId]) * getBigInt(this.gasData[chainId]) / getBigInt(2);
     }
 
     async validateProxy(from, trader, chainId) {
