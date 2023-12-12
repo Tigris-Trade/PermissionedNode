@@ -614,16 +614,16 @@ class App {
         ];
         try {
             Promise.all(validatePromises).then((values) => {
-                if (values[0] && values[1] && values[2]) {
+                if (values[0].valid && values[1].valid && values[2].valid) {
                     return {valid: true};
                 } else {
-                    if (!values[0]) {
+                    if (!values[0].valid) {
                         return {valid: false, reason: "Insufficient user gas balance."};
                     }
-                    if (!values[1]) {
+                    if (!values[1].valid) {
                         return {valid: false, reason: "Proxy not approved."};
                     }
-                    if (!values[2]) {
+                    if (!values[2].valid) {
                         return {valid: false, reason: "Hash already used."}
                     }
                 }
@@ -637,7 +637,10 @@ class App {
 
         // Check if the forwarder.userGas(trader) is enough
         const userGas = await forwarderContract.userGas(trader);
-        return getBigInt(userGas) >= getBigInt(this.gasLimits[chainId]) * getBigInt(this.gasData[chainId]) / getBigInt(2);
+        if (getBigInt(userGas) < getBigInt(this.gasLimits[chainId]) * getBigInt(this.gasData[chainId]) / getBigInt(2)) {
+            return {valid: false};
+        }
+        return {valid: true};
     }
 
     async validateProxy(from, trader, chainId) {
@@ -649,10 +652,10 @@ class App {
             // check that trading.proxyApprovals(trader) == request.from
             const proxyApproval = await tradingContract.proxyApprovals(trader);
             if (proxyApproval !== trader) {
-                return false;
+                return {valid: false};
             }
         }
-        return true;
+        return {valid: true};
     }
 
     async validateHash(req, chainId) {
@@ -669,7 +672,10 @@ class App {
 
         const forwarderContract = this.forwarderContract[chainId][0];
         const isHashUsed = await forwarderContract.usedHashes(hash);
-        return !isHashUsed;
+        if (isHashUsed) {
+            return {valid: false};
+        }
+        return {valid: true};
     }
 }
 
