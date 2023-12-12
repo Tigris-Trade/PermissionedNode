@@ -112,7 +112,7 @@ class App {
         })
 
         // Init Middlewares
-        this.app.use(express.json({ extended: false }));
+        this.app.use(express.json({ limit: "5kb" }));
         this.app.use(cors());
 
         const PORT = process.env.PORT || 8000;
