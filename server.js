@@ -153,7 +153,7 @@ class App {
                 res.status(503).json({ reason: "Disconnected" });
                 return;
             }
-            if (this.gasBalances[42161] < 0.02 || this.gasBalances[137] < 10) {
+            if (this.gasBalances[42161] < 0.02 || this.gasBalances[137] < 5) {
                 res.status(503).json({ reason: "Low on gas" });
                 return;
             }
@@ -201,7 +201,7 @@ class App {
                 res.status(503).json({reason: "Node not ready yet!"});
                 return;
             }
-            if (this.gasBalances[42161] < 0.02 || this.gasBalances[137] < 10) {
+            if (this.gasBalances[42161] < 0.02 || this.gasBalances[137] < 5 || this.gasBalances[82] < 1) {
                 res.status(503).json({reason: "Node low on gas!"});
                 return;
             }
@@ -276,8 +276,9 @@ class App {
                 return;
             }
             // Check chain state
-            if (!(await this.validateState(req.body))) {
-                res.status(400).json({reason: "Not enough gas funded!"});
+            const state = await this.validateState(req.body);
+            if (!state.valid) {
+                res.status(400).json({reason: state.reason});
                 return;
             }
             const orderType = req.body.orderType;
@@ -379,7 +380,7 @@ class App {
                             console.log("WARNING: Address " + address + " is running low on gas on ARBITRUM! Only " + balance + " ETH left!");
                         }
                     } else if (chainId === 137) {
-                        if (balance < 10) {
+                        if (balance < 5) {
                             console.log("WARNING: Address " + address + " is running low on gas on POLYGON! Only " + balance + " MATIC left!");
                         }
                     } else if (chainId === 82) {
@@ -392,7 +393,7 @@ class App {
                     }
                 }
                 if (chainId === 137) {
-                    if (this.gasBalances[chainId] < 10 && minGasBalance >= 10) {
+                    if (this.gasBalances[chainId] < 5 && minGasBalance >= 10) {
                         console.log("INFO: Gas balance on POLYGON has recovered!");
                     }
                 } else if (chainId === 42161) {
@@ -400,7 +401,7 @@ class App {
                         console.log("INFO: Gas balance on ARBITRUM has recovered!");
                     }
                 } else if (chainId === 82) {
-                    if (this.gasBalances[chainId] < 10 && minGasBalance >= 10) {
+                    if (this.gasBalances[chainId] < 1 && minGasBalance >= 1) {
                         console.log("INFO: Gas balance on METER has recovered!");
                     }
                 }
@@ -613,69 +614,87 @@ class App {
             this.validateHash(request, chainId)
         ];
         try {
-            Promise.all(validatePromises).then((values) => {
-                if (values[0].valid && values[1].valid && values[2].valid) {
-                    return {valid: true};
-                } else {
-                    if (!values[0].valid) {
-                        return {valid: false, reason: "Insufficient user gas balance."};
-                    }
-                    if (!values[1].valid) {
-                        return {valid: false, reason: "Proxy not approved."};
-                    }
-                    if (!values[2].valid) {
-                        return {valid: false, reason: "Hash already used."}
-                    }
+            const values = await Promise.all(validatePromises);
+            if (values[0].valid && values[1].valid && values[2].valid) {
+                return {valid: true};
+            } else {
+                if (!values[0].valid) {
+                    return {valid: false, reason: "Insufficient user gas balance."};
                 }
-            });
-        } catch {}
-        return true;
+                if (!values[1].valid) {
+                    return {valid: false, reason: "Proxy not approved."};
+                }
+                if (!values[2].valid) {
+                    return {valid: false, reason: "Hash already used."}
+                }
+            }
+        } catch (err) {
+            console.log("ERROR: Failed to validate state.");
+            console.log(err);
+        }
+        console.log("ERROR: Failed to validate state but returned valid.");
+        return {valid: true};
     }
 
     async validateUserGasBalance(trader, chainId) {
-        const forwarderContract = this.forwarderContract[chainId][0];
+        try {
+            const forwarderContract = this.forwarderContract[chainId][0];
 
-        // Check if the forwarder.userGas(trader) is enough
-        const userGas = await forwarderContract.userGas(trader);
-        if (getBigInt(userGas) < getBigInt(this.gasLimits[chainId]) * getBigInt(this.gasData[chainId]) / getBigInt(2)) {
-            return {valid: false};
+            // Check if the forwarder.userGas(trader) is enough
+            const userGas = await forwarderContract.userGas(trader);
+            if (getBigInt(userGas) < getBigInt(this.gasLimits[chainId]) * getBigInt(this.gasData[chainId]) / getBigInt(3)) {
+                return {valid: false};
+            }
+            return {valid: true};
+        } catch (err) {
+            console.log(err);
+            return {valid: true};
         }
-        return {valid: true};
     }
 
     async validateProxy(from, trader, chainId) {
-        if (from !== trader) {
-            const provider = this.providers[chainId];
-            const tradingAddress = this.tradingAddress[chainId];
-            const tradingContract = new ethers.Contract(tradingAddress, tradingABI, provider);
+        try {
+            if (from !== trader) {
+                const provider = this.providers[chainId];
+                const tradingAddress = this.tradingAddress[chainId];
+                const tradingContract = new ethers.Contract(tradingAddress, tradingABI, provider);
 
-            // check that trading.proxyApprovals(trader) == request.from
-            const proxyApproval = await tradingContract.proxyApprovals(trader);
-            if (proxyApproval !== trader) {
-                return {valid: false};
+                // check that trading.proxyApprovals(trader) == request.from
+                const proxyApproval = await tradingContract.proxyApprovals(trader);
+                if (proxyApproval !== from) {
+                    return {valid: false};
+                }
             }
+            return {valid: true};
+        } catch (err) {
+            console.log(err);
+            return {valid: true};
         }
-        return {valid: true};
     }
 
     async validateHash(req, chainId) {
-        const from = req.from;
-        const to = req.to;
-        const salt = req.salt;
-        const deadline = req.deadline;
-        const data = req.data;
+        try {
+            const from = req.from;
+            const to = req.to;
+            const salt = req.salt;
+            const deadline = req.deadline;
+            const data = req.data;
 
-        const hash = ethers.keccak256(ethers.AbiCoder.defaultAbiCoder().encode(
-            ["tuple(address from, address to, bytes32 salt, uint256 deadline, bytes data)"],
-            [[from, to, salt, deadline, data]]
-        ));
+            const hash = ethers.keccak256(ethers.AbiCoder.defaultAbiCoder().encode(
+                ["tuple(address from, address to, bytes32 salt, uint256 deadline, bytes data)"],
+                [[from, to, salt, deadline, data]]
+            ));
 
-        const forwarderContract = this.forwarderContract[chainId][0];
-        const isHashUsed = await forwarderContract.usedHashes(hash);
-        if (isHashUsed) {
-            return {valid: false};
+            const forwarderContract = this.forwarderContract[chainId][0];
+            const isHashUsed = await forwarderContract.usedHashes(hash);
+            if (isHashUsed) {
+                return {valid: false};
+            }
+            return {valid: true};
+        } catch (err) {
+            console.log(err);
+            return {valid: true};
         }
-        return {valid: true};
     }
 }
 
