@@ -654,13 +654,14 @@ class App {
 
     async validateProxy(from, trader, chainId) {
         try {
+            from = from.toLowerCase();
             if (from !== trader) {
                 const provider = this.providers[chainId];
                 const tradingAddress = this.tradingAddress[chainId];
                 const tradingContract = new ethers.Contract(tradingAddress, tradingABI, provider);
 
                 // check that trading.proxyApprovals(trader) == request.from
-                const proxyApproval = await tradingContract.proxyApprovals(trader);
+                const proxyApproval = (await tradingContract.proxyApprovals(trader)).toLowerCase();
                 if (proxyApproval !== from) {
                     return {valid: false};
                 }
