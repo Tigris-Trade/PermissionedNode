@@ -297,7 +297,7 @@ class App {
                 req.body.data
             ];
             const signature = req.body.signature;
-            const result = await this.execute(request, signature, orderType, req.body.chainId, req.body.pairId);
+            const result = await this.execute(request, signature, orderType, req.body.chainId, req.body.pairId, state.gasLimit);
             if (!result.reason) {
                 res.status(200).json(result);
             } else {
@@ -465,7 +465,7 @@ class App {
         console.log("INFO: Node is ready!");
     }
 
-    async execute(forwardRequest, signature, orderType, chainId, pairId) {
+    async execute(forwardRequest, signature, orderType, chainId, pairId, gasLimit) {
 
         const keyIndex = this.keyIndex++%10;
 
@@ -536,7 +536,7 @@ class App {
             to: await contract.getAddress(),
             chainId: chainId,
             nonce: this.nonces[chainId][keyIndex],
-            gasLimit: this.gasLimits[chainId],
+            gasLimit: gasLimit,
             maxFeePerGas: this.gasData[chainId],
             maxPriorityFeePerGas: this.gasData[chainId],
             data: contract.interface.encodeFunctionData(func, values)
@@ -634,7 +634,7 @@ class App {
         try {
             const values = await Promise.all(validatePromises);
             if (values[0].valid && values[1].valid && values[2].valid) {
-                return {valid: true};
+                return {valid: true, gasLimit: values[0].gasLimit};
             } else {
                 if (!values[0].valid) {
                     return {valid: false, reason: "Insufficient user gas balance. At least "
@@ -663,6 +663,7 @@ class App {
 
             // Check if the forwarder.userGas(trader) is enough
             const userGas = await forwarderContract.userGas(trader);
+            let gasLimit;
             if (chainId === 42161) {
                 const nodeInterface = NodeInterface__factory.connect(
                     NODE_INTERFACE_ADDRESS,
@@ -687,21 +688,22 @@ class App {
                 const L1C = l1EstimatedPrice.mul(l1Size);
                 const B = L1C.div(P);
                 const G = L2G.add(B);
-
-                const gasNeeded = getBigInt(G);
+                const gasNeeded = P.mul(G);
+                gasLimit = Number(G);
                 if (getBigInt(userGas) < gasNeeded) {
                     return {valid: false, gasNeeded: formatEther(gasNeeded)};
                 }
             } else {
-                const gasNeeded = getBigInt(this.gasLimits[chainId]) * getBigInt(this.gasData[chainId]) / getBigInt(3);
+                const gasNeeded = getBigInt(this.gasLimits[chainId]) * getBigInt(this.gasData[chainId]);
+                gasLimit = this.gasLimits[chainId];
                 if (getBigInt(userGas) < gasNeeded) {
                     return {valid: false, gasNeeded: formatEther(gasNeeded)};
                 }
             }
-            return {valid: true};
+            return {valid: true, gasLimit: gasLimit};
         } catch (err) {
             console.log(err);
-            return {valid: true};
+            return {valid: true, gasLimit: this.gasLimits[chainId]};
         }
     }
 
