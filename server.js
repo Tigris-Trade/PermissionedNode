@@ -619,7 +619,7 @@ class App {
                 return {valid: true};
             } else {
                 if (!values[0].valid) {
-                    return {valid: false, reason: "Insufficient user gas balance."};
+                    return {valid: false, reason: "Insufficient user gas balance. Deposit more gas!"};
                 }
                 if (!values[1].valid) {
                     return {valid: false, reason: "Proxy not approved."};
