@@ -38,12 +38,13 @@ class App {
             82: "0xDa3662a982625e1f2649b0a1e571207C0D87B76E"
         }
         this.gasLimits = {
-            42161: 20000000,
+            42161: 4000000,
             137: 3000000,
             82: 3000000
         }
 
         this.rpcs = {
+            1: process.env.ETHEREUM_RPC_URL,
             42161: process.env.ARBITRUM_RPC_URL,
             137: process.env.POLYGON_RPC_URL,
             82: process.env.METER_RPC_URL
@@ -92,6 +93,10 @@ class App {
 
         if (process.env["METER_RPC_URL"] === undefined) {
             throw new Error(`MISSING METER RPC URL.\nSET IT IN THE ".env" FILE USING METER_RPC_URL=<meter_rpc_url>.\n`);
+        }
+
+        if (process.env["ETHEREUM_RPC_URL"] === undefined) {
+            throw new Error(`MISSING ETHEREUM RPC URL.\nSET IT IN THE ".env" FILE USING ETHEREUM_RPC_URL=<ethereum_rpc_url>.\n`);
         }
 
         if (process.env["DISPLAY_NAME"] === undefined) {
@@ -354,6 +359,7 @@ class App {
     async updateGasPrice() {
         try {
             this.gasData = {
+                1: Math.floor(Number((await (await new ethers.JsonRpcProvider(this.rpcs[1])).provider.getFeeData()).gasPrice)),
                 42161: Math.floor(Number((await this.providers[42161].provider.getFeeData()).gasPrice)*3),
                 137: Math.floor(Number((await this.providers[137].provider.getFeeData()).gasPrice)*3),
                 82: Math.floor(Number((await this.providers[82].provider.getFeeData()).gasPrice)*3)
@@ -642,8 +648,14 @@ class App {
 
             // Check if the forwarder.userGas(trader) is enough
             const userGas = await forwarderContract.userGas(trader);
-            if (getBigInt(userGas) < getBigInt(this.gasLimits[chainId]) * getBigInt(this.gasData[chainId]) / getBigInt(3)) {
-                return {valid: false};
+            if (chainId === 42161) {
+                if (getBigInt(userGas) < (getBigInt(this.gasLimits[chainId]) * getBigInt(this.gasData[chainId]) / getBigInt(3) * getBigInt(this.gasData[1]) / getBigInt(50_000_000_000))) {
+                    return {valid: false};
+                }
+            } else {
+                if (getBigInt(userGas) < getBigInt(this.gasLimits[chainId]) * getBigInt(this.gasData[chainId]) / getBigInt(3)) {
+                    return {valid: false};
+                }
             }
             return {valid: true};
         } catch (err) {
