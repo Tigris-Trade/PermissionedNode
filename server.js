@@ -627,7 +627,7 @@ class App {
         const chainId = request.chainId;
         const traderAddress = '0x' + request.data.slice(-40);
         const validatePromises = [
-            this.validateUserGasBalance(traderAddress, chainId, request.body.data),
+            this.validateUserGasBalance(traderAddress, chainId, request.data),
             this.validateProxy(request.from, traderAddress, chainId),
             this.validateHash(request, chainId)
         ];
