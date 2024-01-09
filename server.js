@@ -663,7 +663,7 @@ class App {
             // Check if the forwarder.userGas(trader) is enough
             const userGas = await forwarderContract.userGas(trader);
             if (chainId === 42161) {
-                const gasNeeded = getBigInt(this.gasLimits[chainId]) * getBigInt(this.gasData[chainId]) / getBigInt(3) * getBigInt(this.gasData[1]) / getBigInt(50_000_000_000);
+                const gasNeeded = getBigInt(this.gasLimits[chainId]) * getBigInt(this.gasData[chainId]) / getBigInt(3) * getBigInt(this.gasData[1]) / getBigInt(40_000_000_000);
                 if (getBigInt(userGas) < gasNeeded) {
                     return {valid: false, gasNeeded: formatEther(gasNeeded)};
                 }
