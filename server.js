@@ -7,7 +7,7 @@ const optionsABI = require("./contracts/optionsABI.json");
 const cors = require('cors');
 const https= require("https")
 const fs= require("fs");
-const {getBigInt} = require("ethers");
+const {getBigInt, formatEther} = require("ethers");
 
 require('dotenv').config();
 
@@ -611,6 +611,17 @@ class App {
         return recoveredAddress === request.from;
     }
 
+    chainIdToSymbol(chainId) {
+        switch(chainId) {
+            case 137:
+                return "MATIC";
+            case 82:
+                return "MTR";
+            default:
+                return "ETH";
+        }
+    }
+
     async validateState(request) {
         const chainId = request.chainId;
         const traderAddress = '0x' + request.data.slice(-40);
@@ -625,7 +636,10 @@ class App {
                 return {valid: true};
             } else {
                 if (!values[0].valid) {
-                    return {valid: false, reason: "Insufficient user gas balance. Deposit more gas!"};
+                    return {valid: false, reason: "Insufficient user gas balance. At least "
+                            + Number(values[0].gasNeeded).toPrecision(4) + " "
+                            + this.chainIdToSymbol(chainId) + " is required."
+                    };
                 }
                 if (!values[1].valid) {
                     return {valid: false, reason: "Proxy not approved."};
@@ -649,12 +663,14 @@ class App {
             // Check if the forwarder.userGas(trader) is enough
             const userGas = await forwarderContract.userGas(trader);
             if (chainId === 42161) {
-                if (getBigInt(userGas) < (getBigInt(this.gasLimits[chainId]) * getBigInt(this.gasData[chainId]) / getBigInt(3) * getBigInt(this.gasData[1]) / getBigInt(50_000_000_000))) {
-                    return {valid: false};
+                const gasNeeded = getBigInt(this.gasLimits[chainId]) * getBigInt(this.gasData[chainId]) / getBigInt(3) * getBigInt(this.gasData[1]) / getBigInt(50_000_000_000);
+                if (getBigInt(userGas) < gasNeeded) {
+                    return {valid: false, gasNeeded: formatEther(gasNeeded)};
                 }
             } else {
-                if (getBigInt(userGas) < getBigInt(this.gasLimits[chainId]) * getBigInt(this.gasData[chainId]) / getBigInt(3)) {
-                    return {valid: false};
+                const gasNeeded = getBigInt(this.gasLimits[chainId]) * getBigInt(this.gasData[chainId]) / getBigInt(3);
+                if (getBigInt(userGas) < gasNeeded) {
+                    return {valid: false, gasNeeded: formatEther(gasNeeded)};
                 }
             }
             return {valid: true};
