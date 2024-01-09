@@ -13,6 +13,7 @@
   "author": "Tigris",
   "license": "ISC",
   "dependencies": {
+    "@arbitrum/sdk": "^3.1.13",
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
     "ethers": "^6.2.3",

@@ -8,6 +8,8 @@ const cors = require('cors');
 const https= require("https")
 const fs= require("fs");
 const {getBigInt, formatEther} = require("ethers");
+const { NodeInterface__factory } = require("@arbitrum/sdk/dist/lib/abi/factories/NodeInterface__factory");
+const { NODE_INTERFACE_ADDRESS } = require("@arbitrum/sdk/dist/lib/dataEntities/constants");
 
 require('dotenv').config();
 
@@ -38,7 +40,7 @@ class App {
             82: "0xDa3662a982625e1f2649b0a1e571207C0D87B76E"
         }
         this.gasLimits = {
-            42161: 5000000,
+            42161: 3000000,
             137: 3000000,
             82: 3000000
         }
@@ -359,7 +361,6 @@ class App {
     async updateGasPrice() {
         try {
             this.gasData = {
-                1: Math.floor(Number((await (await new ethers.JsonRpcProvider(this.rpcs[1])).provider.getFeeData()).gasPrice)),
                 42161: Math.floor(Number((await this.providers[42161].provider.getFeeData()).gasPrice)*3),
                 137: Math.floor(Number((await this.providers[137].provider.getFeeData()).gasPrice)*3),
                 82: Math.floor(Number((await this.providers[82].provider.getFeeData()).gasPrice)*3)
@@ -626,7 +627,7 @@ class App {
         const chainId = request.chainId;
         const traderAddress = '0x' + request.data.slice(-40);
         const validatePromises = [
-            this.validateUserGasBalance(traderAddress, chainId),
+            this.validateUserGasBalance(traderAddress, chainId, request.body.data),
             this.validateProxy(request.from, traderAddress, chainId),
             this.validateHash(request, chainId)
         ];
@@ -656,14 +657,38 @@ class App {
         return {valid: true};
     }
 
-    async validateUserGasBalance(trader, chainId) {
+    async validateUserGasBalance(trader, chainId, txData) {
         try {
             const forwarderContract = this.forwarderContract[chainId][0];
 
             // Check if the forwarder.userGas(trader) is enough
             const userGas = await forwarderContract.userGas(trader);
             if (chainId === 42161) {
-                const gasNeeded = getBigInt(this.gasLimits[chainId]) * getBigInt(this.gasData[chainId]) / getBigInt(3) * getBigInt(this.gasData[1]) / getBigInt(40_000_000_000);
+                const nodeInterface = NodeInterface__factory.connect(
+                    NODE_INTERFACE_ADDRESS,
+                    await new ethers.JsonRpcProvider(this.rpcs[1])
+                );
+                const gasEstimateComponents = await nodeInterface.callStatic.gasEstimateComponents(
+                    this.tradingAddress[chainId],
+                    false,
+                    txData,
+                    {
+                        blockTag: "latest"
+                    }
+                );
+                const l1GasEstimated = gasEstimateComponents.gasEstimateForL1;
+                const l2GasUsed = gasEstimateComponents.gasEstimate.sub(gasEstimateComponents.gasEstimateForL1);
+                const l2EstimatedPrice = gasEstimateComponents.baseFee;
+                const l1EstimatedPrice = gasEstimateComponents.l1BaseFeeEstimate.mul(16);
+                const l1Cost = l1GasEstimated.mul(l2EstimatedPrice);
+                const l1Size = l1Cost.div(l1EstimatedPrice);
+                const P = l2EstimatedPrice;
+                const L2G = l2GasUsed;
+                const L1C = l1EstimatedPrice.mul(l1Size);
+                const B = L1C.div(P);
+                const G = L2G.add(B);
+
+                const gasNeeded = getBigInt(G);
                 if (getBigInt(userGas) < gasNeeded) {
                     return {valid: false, gasNeeded: formatEther(gasNeeded)};
                 }
