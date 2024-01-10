@@ -38,7 +38,7 @@ class App {
             82: "0xDa3662a982625e1f2649b0a1e571207C0D87B76E"
         }
         this.gasLimits = {
-            42161: 5600000,
+            42161: 5000000,
             137: 3000000,
             82: 3000000
         }
@@ -664,7 +664,8 @@ class App {
             const userGas = await forwarderContract.userGas(trader);
             let gasLimit;
             if (chainId === 42161) {
-                gasLimit = (getBigInt(this.gasLimits[42161]) / getBigInt(7)) * getBigInt(this.gasData[1]) / getBigInt(5_000_000_000);
+                // 5M base + 50k per 1 gwei L1 gas price
+                gasLimit = getBigInt(this.gasLimits[42161]) + (getBigInt(50000) * getBigInt(this.gasData[1]) / getBigInt(1_000_000_000));
                 const gasNeeded = getBigInt(gasLimit) * getBigInt(this.gasData[42161]);
                 if (getBigInt(userGas) < gasNeeded) {
                     return {valid: false, gasNeeded: formatEther(gasNeeded)};
