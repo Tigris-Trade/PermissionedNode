@@ -39,8 +39,8 @@ class App {
         }
         this.gasLimits = {
             42161: 5000000,
-            137: 3000000,
-            82: 3000000
+            137: 1500000,
+            82: 1500000
         }
 
         this.rpcs = {
@@ -362,7 +362,7 @@ class App {
                 1: Number((await this.providers[1].provider.getFeeData()).gasPrice),
                 42161: Math.floor(Number((await this.providers[42161].provider.getFeeData()).gasPrice)*1.5),
                 137: Math.floor(Number((await this.providers[137].provider.getFeeData()).gasPrice)*3),
-                82: Math.floor(Number((await this.providers[82].provider.getFeeData()).gasPrice)*3)
+                82: Math.floor(Number((await this.providers[82].provider.getFeeData()).gasPrice)*1.5)
             }
         } catch(err) {
             console.log(err.reason ?? err.message);
@@ -637,7 +637,7 @@ class App {
             } else {
                 if (!values[0].valid) {
                     return {valid: false, reason: "At least "
-                            + Number(values[0].gasNeeded).toPrecision(4) + " "
+                            + String(Number(Number(values[0].gasNeeded).toPrecision(4))) + " "
                             + this.chainIdToSymbol(chainId) + " is required."
                     };
                 }
