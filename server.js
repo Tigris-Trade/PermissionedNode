@@ -40,7 +40,7 @@ class App {
         this.gasLimits = {
             42161: 5000000,
             137: 1500000,
-            82: 1500000
+            82: 1100000
         }
 
         this.rpcs = {
@@ -362,7 +362,7 @@ class App {
                 1: Number((await this.providers[1].provider.getFeeData()).gasPrice),
                 42161: Math.floor(Number((await this.providers[42161].provider.getFeeData()).gasPrice)*1.5),
                 137: Math.floor(Number((await this.providers[137].provider.getFeeData()).gasPrice)*3),
-                82: Math.floor(Number((await this.providers[82].provider.getFeeData()).gasPrice)*1.5)
+                82: Math.floor(Number((await this.providers[82].provider.getFeeData()).gasPrice)*1.1)
             }
         } catch(err) {
             console.log(err.reason ?? err.message);
