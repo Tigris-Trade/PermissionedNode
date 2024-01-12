@@ -360,7 +360,7 @@ class App {
         try {
             this.gasData = {
                 1: Number((await this.providers[1].provider.getFeeData()).gasPrice),
-                42161: Math.floor(Number((await this.providers[42161].provider.getFeeData()).gasPrice)*1.1),
+                42161: Math.floor(Number((await this.providers[42161].provider.getFeeData()).gasPrice)*1.2),
                 137: Math.floor(Number((await this.providers[137].provider.getFeeData()).gasPrice)*3),
                 82: Math.floor(Number((await this.providers[82].provider.getFeeData()).gasPrice)*1.1)
             }
