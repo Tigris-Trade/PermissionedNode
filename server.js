@@ -446,7 +446,7 @@ class App {
             let publicRpc = this.publicRpcs[chainId];
             this.providers[chainId] = new ethers.JsonRpcProvider(rpc);
             this.publicProviders[chainId] = new ethers.JsonRpcProvider(publicRpc);
-            const provider = this.providers[chainId];
+            const provider = this.publicProviders[chainId];
             this.nonces[chainId] = {};
             this.signers[chainId] = {};
 
