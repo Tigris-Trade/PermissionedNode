@@ -25,35 +25,41 @@ class App {
         this.forwarderAddress = {
             42161: "0xEC75cf9a18eF82Fa7F8F2A7afAf2521cD998D757",
             137: "0x17eE6D3ec827863119698D125EFB3200B49e90c6",
-            82: "0x71B3EdDD0628875C22ec49D8D1E0eEE20759945E"
+            82: "0x71B3EdDD0628875C22ec49D8D1E0eEE20759945E",
+            168587773: "0xe17a2829F0C23c02E662c616081dCaD18dCbb7E4"
         };
         this.tradingAddress = {
             42161: "0xd89B4B1C8918150f137cc68E83E3876F9e309aB9",
             137: "0xA35eabB4be62Ed07E88c2aF73234fe7dD48a73D4",
-            82: "0xD1705f847b421b6C0bb31e649fBA1983257B77D3"
+            82: "0xD1705f847b421b6C0bb31e649fBA1983257B77D3",
+            168587773: "0x51F6ca1f76c940d60E56798b4ca06A14245E1C40"
         }
         this.optionsAddress = {
             42161: "0x8895b0B946b3d5bCd7D1E9E31DCfaeB51644922A",
             137: "0xFeABeC2CaC8A1A2f1C0c181572aA88c8b91288B2",
-            82: "0xDa3662a982625e1f2649b0a1e571207C0D87B76E"
+            82: "0xDa3662a982625e1f2649b0a1e571207C0D87B76E",
+            168587773: "0xFeABeC2CaC8A1A2f1C0c181572aA88c8b91288B2"
         }
         this.gasLimits = {
             42161: 5000000,
             137: 1500000,
-            82: 1100000
+            82: 1100000,
+            168587773: 1500000
         }
 
         this.rpcs = {
             1: process.env.ETHEREUM_RPC_URL,
             42161: process.env.ARBITRUM_RPC_URL,
             137: process.env.POLYGON_RPC_URL,
-            82: process.env.METER_RPC_URL
+            82: process.env.METER_RPC_URL,
+            168587773: process.env.BLAST_TEST_RPC_URL
         }
 
         this.publicRpcs = {
             42161: "https://arb1.arbitrum.io/rpc",
             137: "https://polygon-rpc.com",
-            82: "https://rpc.meter.io"
+            82: "https://rpc.meter.io",
+            168587773: "https://sepolia.blast.io"
         }
 
         this.privs = [
@@ -97,6 +103,10 @@ class App {
 
         if (process.env["ETHEREUM_RPC_URL"] === undefined) {
             throw new Error(`MISSING ETHEREUM RPC URL.\nSET IT IN THE ".env" FILE USING ETHEREUM_RPC_URL=<ethereum_rpc_url>.\n`);
+        }
+
+        if (process.env["BLAST_TEST_RPC_URL"] === undefined) {
+            throw new Error(`MISSING BLAST TEST RPC URL.\nSET IT IN THE ".env" FILE USING BLAST_TEST_RPC_URL=<blast_test_rpc_url>.\n`);
         }
 
         if (process.env["DISPLAY_NAME"] === undefined) {
@@ -158,7 +168,7 @@ class App {
                 res.status(503).json({ reason: "Disconnected" });
                 return;
             }
-            if (this.gasBalances[42161] < 0.02 || this.gasBalances[137] < 5) {
+            if (this.gasBalances[42161] < 0.02 || this.gasBalances[137] < 5 || this.gasBalances[82] < 1 || this.gasBalances[168587773] < 0.001) {
                 res.status(503).json({ reason: "Low on gas" });
                 return;
             }
@@ -206,7 +216,7 @@ class App {
                 res.status(503).json({reason: "Node not ready yet!"});
                 return;
             }
-            if (this.gasBalances[42161] < 0.02 || this.gasBalances[137] < 5 || this.gasBalances[82] < 1) {
+            if (this.gasBalances[42161] < 0.02 || this.gasBalances[137] < 5 || this.gasBalances[82] < 1 || this.gasBalances[168587773] < 0.001) {
                 res.status(503).json({reason: "Node low on gas!"});
                 return;
             }
@@ -362,7 +372,8 @@ class App {
                 1: Number((await this.providers[1].provider.getFeeData()).gasPrice),
                 42161: Math.floor(Number((await this.providers[42161].provider.getFeeData()).gasPrice)*1.2),
                 137: Math.floor(Number((await this.providers[137].provider.getFeeData()).gasPrice)*3),
-                82: Math.floor(Number((await this.providers[82].provider.getFeeData()).gasPrice)*1.1)
+                82: Math.floor(Number((await this.providers[82].provider.getFeeData()).gasPrice)*1.1),
+                168587773: Math.floor(Number((await this.providers[168587773].provider.getFeeData()).gasPrice)*1.2)
             }
         } catch(err) {
             console.log(err.reason ?? err.message);
@@ -371,7 +382,7 @@ class App {
 
     async updateGasBalance() {
         try {
-            for (const chainId of [42161, 137, 82]) {
+            for (const chainId of [42161, 137, 82, 168587773]) {
                 let minGasBalance = 1000000;
                 for (const account in this.signers[chainId]) {
                     const address = await this.signers[chainId][account].getAddress();
@@ -393,6 +404,10 @@ class App {
                         if (balance < 1) {
                             console.log("WARNING: Address " + address + " is running low on gas on METER! Only " + balance + " MTR left!");
                         }
+                    } else if (chainId === 168587773) {
+                        if (balance < 0.001) {
+                            console.log("WARNING: Address " + address + " is running low on gas on BLAST TESTNET! Only " + balance + " ETH left!");
+                        }
                     }
                     if (balance < minGasBalance) {
                         minGasBalance = balance;
@@ -410,6 +425,10 @@ class App {
                     if (this.gasBalances[chainId] < 1 && minGasBalance >= 1) {
                         console.log("INFO: Gas balance on METER has recovered!");
                     }
+                } else if (chainId === 168587773) {
+                    if (this.gasBalances[chainId] < 0.001 && minGasBalance >= 0.001) {
+                        console.log("INFO: Gas balance on BLAST TESTNET has recovered!");
+                    }
                 }
                 this.gasBalances[chainId] = minGasBalance;
             }
@@ -419,7 +438,7 @@ class App {
     }
 
     async updateNonces() {
-        for (const chainId of [42161, 137, 82]) {
+        for (const chainId of [42161, 137, 82, 168587773]) {
             for (const account in this.signers[chainId]) {
                 try {
                 const address = await this.signers[chainId][account].getAddress();
@@ -436,7 +455,7 @@ class App {
         setTimeout(() => {
             console.log("INFO: Do not interact with the node until it has finished setting up...");
         }, 2000);
-        const networkIds = [42161, 137, 82];
+        const networkIds = [42161, 137, 82, 168587773];
         this.providers[1] = new ethers.JsonRpcProvider(this.rpcs[1]);
         for (const chainId of networkIds) {
             this.forwarderContract[chainId] = {};
