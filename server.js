@@ -253,7 +253,7 @@ class App {
                 return;
             }
             // Check that chainId is valid
-            if (req.body.chainId !== 42161 && req.body.chainId !== 137 && req.body.chainId !== 82) {
+            if (req.body.chainId !== 42161 && req.body.chainId !== 137 && req.body.chainId !== 82 && req.body.chainId !== 168587773) {
                 res.status(400).json({reason: "Unsupported chain ID!"});
                 return;
             }
