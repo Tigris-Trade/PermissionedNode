@@ -665,7 +665,7 @@ class App {
             let gasLimit;
             if (chainId === 42161) {
                 // 5M base + 75k per 1 gwei L1 gas price
-                gasLimit = getBigInt(this.gasLimits[42161]) + (getBigInt(50000) * getBigInt(this.gasData[1]) / getBigInt(1_000_000_000));
+                gasLimit = getBigInt(this.gasLimits[42161]) + (getBigInt(75000) * getBigInt(this.gasData[1]) / getBigInt(1_000_000_000));
                 const gasNeeded = getBigInt(gasLimit) * getBigInt(this.gasData[42161]);
                 if (getBigInt(userGas) < gasNeeded) {
                     return {valid: false, gasNeeded: formatEther(gasNeeded)};
