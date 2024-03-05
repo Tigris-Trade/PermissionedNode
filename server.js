@@ -4,6 +4,7 @@ const socketio = require("socket.io-client");
 const forwarderABI = require("./contracts/forwarderABI.json");
 const tradingABI = require("./contracts/tradingABI.json");
 const optionsABI = require("./contracts/optionsABI.json");
+const arbgasABI = require("./contracts/arbgasABI.json");
 const cors = require('cors');
 const https= require("https")
 const fs= require("fs");
@@ -38,7 +39,7 @@ class App {
             82: "0xDa3662a982625e1f2649b0a1e571207C0D87B76E"
         }
         this.gasLimits = {
-            42161: 20000000,
+            42161: 3000000,
             137: 1500000,
             82: 1100000
         }
@@ -93,10 +94,6 @@ class App {
 
         if (process.env["METER_RPC_URL"] === undefined) {
             throw new Error(`MISSING METER RPC URL.\nSET IT IN THE ".env" FILE USING METER_RPC_URL=<meter_rpc_url>.\n`);
-        }
-
-        if (process.env["ETHEREUM_RPC_URL"] === undefined) {
-            throw new Error(`MISSING ETHEREUM RPC URL.\nSET IT IN THE ".env" FILE USING ETHEREUM_RPC_URL=<ethereum_rpc_url>.\n`);
         }
 
         if (process.env["DISPLAY_NAME"] === undefined) {
@@ -311,6 +308,7 @@ class App {
         this.nonces = {};
         this.gasBalances = {};
         this.accountGasBalance = {};
+        this.arbgas = {};
         this.keyIndex = 0;
         this.setup();
         this.updateGasPriceInterval = setInterval(() => {
@@ -359,13 +357,13 @@ class App {
     async updateGasPrice() {
         try {
             this.gasData = {
-                1: Number((await this.providers[1].provider.getFeeData()).gasPrice),
+                1: Math.floor(Number((await this.arbgas.getL1BaseFeeEstimate()))),
                 42161: Math.floor(Number((await this.providers[42161].provider.getFeeData()).gasPrice)*1.2),
                 137: Math.floor(Number((await this.providers[137].provider.getFeeData()).gasPrice)*3),
                 82: Math.floor(Number((await this.providers[82].provider.getFeeData()).gasPrice)*1.1)
             }
         } catch(err) {
-            console.log(err.reason ?? err.message);
+            console.log(err);
         }
     }
 
@@ -437,7 +435,7 @@ class App {
             console.log("INFO: Do not interact with the node until it has finished setting up...");
         }, 2000);
         const networkIds = [42161, 137, 82];
-        this.providers[1] = new ethers.JsonRpcProvider(this.rpcs[1]);
+        this.arbgas = new ethers.Contract("0x000000000000000000000000000000000000006C", arbgasABI, new ethers.JsonRpcProvider(this.rpcs[42161]));
         for (const chainId of networkIds) {
             this.forwarderContract[chainId] = {};
             this.accountGasBalance[chainId] = {};
@@ -665,7 +663,7 @@ class App {
             let gasLimit;
             if (chainId === 42161) {
                 // 5M base + 75k per 1 gwei L1 gas price
-                gasLimit = getBigInt(this.gasLimits[42161]) + (getBigInt(90000) * getBigInt(this.gasData[1]) / getBigInt(1_000_000_000));
+                gasLimit = getBigInt(this.gasLimits[42161]) + (getBigInt(125000) * getBigInt(this.gasData[1]) / getBigInt(1_000_000_000));
                 const gasNeeded = getBigInt(gasLimit) * getBigInt(this.gasData[42161]);
                 if (getBigInt(userGas) < gasNeeded) {
                     return {valid: false, gasNeeded: formatEther(gasNeeded)};
