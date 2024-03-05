@@ -638,7 +638,7 @@ class App {
                 if (!values[0].valid) {
                     return {valid: false, reason: "At least "
                             + String(Number(Number(values[0].gasNeeded).toPrecision(4))) + " "
-                            + this.chainIdToSymbol(chainId) + " is required."
+                            + this.chainIdToSymbol(chainId) + " is needed in proxy wallet for gas."
                     };
                 }
                 if (!values[1].valid) {
