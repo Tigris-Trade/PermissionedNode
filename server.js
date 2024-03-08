@@ -39,13 +39,12 @@ class App {
             82: "0xDa3662a982625e1f2649b0a1e571207C0D87B76E"
         }
         this.gasLimits = {
-            42161: 5000000,
+            42161: 1500000,
             137: 1500000,
             82: 1100000
         }
 
         this.rpcs = {
-            1: process.env.ETHEREUM_RPC_URL,
             42161: process.env.ARBITRUM_RPC_URL,
             137: process.env.POLYGON_RPC_URL,
             82: process.env.METER_RPC_URL
@@ -172,6 +171,23 @@ class App {
                 return;
             }
             res.status(200).json(this.accountGasBalance);
+        });
+
+        this.app.get("/gasRequirement", async (req, res) => {
+            if (this.isGettingReady) {
+                res.status(503).json({ reason: "Node not ready yet!" });
+                return;
+            }
+            if (req.query.chainId) {
+                if (!this.gasLimits[req.query.chainId]) {
+                    res.status(400).json({ reason: "Unsupported chain ID!" });
+                } else {
+                    const {gasNeeded} = await this.getGasRequirement(Number(req.query.chainId));
+                    res.status(200).json(formatEther(gasNeeded));
+                }
+            } else {
+                res.status(400).json({ reason: "Chain ID not provided!" });
+            }
         });
 
         this.oracleSocket = socketio(
@@ -313,7 +329,7 @@ class App {
         this.setup();
         this.updateGasPriceInterval = setInterval(() => {
             this.updateGasPrice();
-        }, 10000);
+        }, 5000);
         this.updateGasBalancesInterval = setInterval(() => {
             this.updateGasBalance();
         }, 60000);
@@ -660,25 +676,23 @@ class App {
 
             // Check if the forwarder.userGas(trader) is enough
             const userGas = await forwarderContract.userGas(trader);
-            let gasLimit;
-            if (chainId === 42161) {
-                // 5M base + 75k per 1 gwei L1 gas price
-                gasLimit = getBigInt(this.gasLimits[42161]) + (getBigInt(120000) * getBigInt(this.gasData[1]) / getBigInt(1_000_000_000));
-                const gasNeeded = getBigInt(gasLimit) * getBigInt(this.gasData[42161]);
-                if (getBigInt(userGas) < gasNeeded) {
-                    return {valid: false, gasNeeded: formatEther(gasNeeded)};
-                }
-            } else {
-                const gasNeeded = getBigInt(this.gasLimits[chainId]) * getBigInt(this.gasData[chainId]);
-                gasLimit = this.gasLimits[chainId];
-                if (getBigInt(userGas) < gasNeeded) {
-                    return {valid: false, gasNeeded: formatEther(gasNeeded)};
-                }
+            const {gasNeeded, gasLimit} = await this.getGasRequirement(chainId);
+            if (getBigInt(userGas) < gasNeeded) {
+                return {valid: false, gasNeeded: formatEther(gasNeeded)};
             }
             return {valid: true, gasLimit: gasLimit};
         } catch (err) {
             console.log(err);
             return {valid: true, gasLimit: this.gasLimits[chainId]};
+        }
+    }
+
+    async getGasRequirement(chainId) {
+        if (chainId === 42161) {
+            const gasLimit = getBigInt(this.gasLimits[42161]) + (getBigInt(110000) * getBigInt(this.gasData[1]) / getBigInt(1_000_000_000));
+            return {gasNeeded: getBigInt(gasLimit) * getBigInt(this.gasData[42161]), gasLimit};
+        } else {
+            return {gasNeeded: getBigInt(this.gasLimits[chainId]) * getBigInt(this.gasData[chainId]), gasLimit: this.gasLimits[chainId]};
         }
     }
 
