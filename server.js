@@ -39,7 +39,7 @@ class App {
             82: "0xDa3662a982625e1f2649b0a1e571207C0D87B76E"
         }
         this.gasLimits = {
-            42161: 1500000,
+            42161: 3000000,
             137: 1500000,
             82: 1100000
         }
@@ -689,7 +689,7 @@ class App {
 
     async getGasRequirement(chainId) {
         if (chainId === 42161) {
-            const gasLimit = getBigInt(this.gasLimits[42161]) + (getBigInt(110000) * getBigInt(this.gasData[1]) / getBigInt(1_000_000_000));
+            const gasLimit = getBigInt(this.gasLimits[42161]) + (getBigInt(120000) * getBigInt(this.gasData[1]) / getBigInt(1_000_000_000));
             return {gasNeeded: getBigInt(gasLimit) * getBigInt(this.gasData[42161]), gasLimit};
         } else {
             return {gasNeeded: getBigInt(this.gasLimits[chainId]) * getBigInt(this.gasData[chainId]), gasLimit: this.gasLimits[chainId]};
