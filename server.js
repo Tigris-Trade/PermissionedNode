@@ -329,7 +329,7 @@ class App {
         this.setup();
         this.updateGasPriceInterval = setInterval(() => {
             this.updateGasPrice();
-        }, 5000);
+        }, 4000);
         this.updateGasBalancesInterval = setInterval(() => {
             this.updateGasBalance();
         }, 60000);
@@ -689,7 +689,7 @@ class App {
 
     async getGasRequirement(chainId) {
         if (chainId === 42161) {
-            const gasLimit = getBigInt(this.gasLimits[42161]) + (getBigInt(120000) * getBigInt(this.gasData[1]) / getBigInt(1_000_000_000));
+            const gasLimit = getBigInt(this.gasLimits[42161]) + (getBigInt(130000) * getBigInt(this.gasData[1]) / getBigInt(1_000_000_000));
             return {gasNeeded: getBigInt(gasLimit) * getBigInt(this.gasData[42161]), gasLimit};
         } else {
             return {gasNeeded: getBigInt(this.gasLimits[chainId]) * getBigInt(this.gasData[chainId]), gasLimit: this.gasLimits[chainId]};
