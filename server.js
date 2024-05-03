@@ -532,7 +532,7 @@ class App {
                 }
 
                 while(PriceData.timestamp <= timenow) {
-                    await new Promise(r => setTimeout(r, 300));
+                    await new Promise(r => setTimeout(r, 200));
                     PriceData = this.latestPriceData[pairId];
                 }
 
