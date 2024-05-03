@@ -308,12 +308,7 @@ class App {
                 req.body.data
             ];
             const signature = req.body.signature;
-            const result = await this.execute(request, signature, orderType, req.body.chainId, req.body.pairId, state.gasLimit);
-            if (!result.reason) {
-                res.status(200).json(result);
-            } else {
-                res.status(400).json(result);
-            }
+            const result = await this.execute(request, signature, orderType, req.body.chainId, req.body.pairId, state.gasLimit, res);
         });
 
         this.isGettingReady = true;
@@ -478,116 +473,133 @@ class App {
         console.log("INFO: Node is ready!");
     }
 
-    async execute(forwardRequest, signature, orderType, chainId, pairId, gasLimit) {
+    async execute(_forwardRequest, _signature, _orderType, _chainId, _pairId, _gasLimit, _res) {
+        const fn = async (forwardRequest, signature, orderType, chainId, pairId, gasLimit) => {
+            const keyIndex = this.keyIndex++%10;
 
-        const keyIndex = this.keyIndex++%10;
+            const contract = this.forwarderContract[chainId][keyIndex];
 
-        const contract = this.forwarderContract[chainId][keyIndex];
+            const publicProvider = this.publicProviders[chainId];
+            const provider = this.providers[chainId];
+            const signer = await this.signers[chainId][keyIndex];
 
-        const publicProvider = this.publicProviders[chainId];
-        const provider = this.providers[chainId];
-        const signer = await this.signers[chainId][keyIndex];
-
-        let func;
-        switch(orderType) {
-            case "marketOpen":
-                func = "executeWithPrice";
-                break;
-            case "marketClose":
-                func = "executeWithPrice";
-                break;
-            case "createLimitOrder":
-                func = "executeWithoutPrice";
-                break;
-            case "addToPosition":
-                func = "executeWithPrice";
-                break;
-            case "addMargin":
-                func = "executeWithPrice";
-                break;
-            case "removeMargin":
-                func = "executeWithPrice";
-                break;
-            case "cancelLimitOrder":
-                func = "executeWithoutPrice";
-                break;
-            case "updateTpSl":
-                func = "executeWithPrice";
-                break;
-            case "openTrade":
-                func = "executeWithPrice";
-                break;
-            case "initiateLimitOrder":
-                func = "executeWithoutPrice";
-                break;
-        }
-
-        const values = [forwardRequest, signature]
-
-        if (func === "executeWithPrice") {
-            if (pairId === undefined || pairId === null) {
-                return {receipt: null, reason: "Pair ID not provided."};
-            }
-            const PriceData = this.latestPriceData[pairId];
-            if (!PriceData) {
-                console.log("ERROR: Price data not found!");
-                return {receipt: null, reason: "Node failed to get price data."};
-            }
-            values.push([
-                PriceData.provider,
-                PriceData.is_closed,
-                PriceData.asset,
-                PriceData.price,
-                PriceData.spread,
-                PriceData.timestamp,
-                PriceData.signature
-            ]);
-        }
-
-        const transaction = {
-            from: await signer.getAddress(),
-            to: await contract.getAddress(),
-            chainId: chainId,
-            nonce: this.nonces[chainId][keyIndex],
-            gasLimit: gasLimit,
-            maxFeePerGas: this.gasData[chainId],
-            maxPriorityFeePerGas: this.gasData[chainId],
-            data: contract.interface.encodeFunctionData(func, values)
-        };
-
-        const signedTransaction = await signer.signTransaction(transaction);
-
-        try {
-            let transactionHash;
-            try {
-                transactionHash = await provider.send('eth_sendRawTransaction', [signedTransaction]);
-            } catch {
-                console.log("WARNING: Private RPC failed, trying public.");
-                transactionHash = await publicProvider.send('eth_sendRawTransaction', [signedTransaction]);
+            let func;
+            switch(orderType) {
+                case "marketOpen":
+                    func = "executeWithPrice";
+                    break;
+                case "marketClose":
+                    func = "executeWithPrice";
+                    break;
+                case "createLimitOrder":
+                    func = "executeWithoutPrice";
+                    break;
+                case "addToPosition":
+                    func = "executeWithPrice";
+                    break;
+                case "addMargin":
+                    func = "executeWithPrice";
+                    break;
+                case "removeMargin":
+                    func = "executeWithPrice";
+                    break;
+                case "cancelLimitOrder":
+                    func = "executeWithoutPrice";
+                    break;
+                case "updateTpSl":
+                    func = "executeWithPrice";
+                    break;
+                case "openTrade":
+                    func = "executeWithPrice";
+                    break;
+                case "initiateLimitOrder":
+                    func = "executeWithoutPrice";
+                    break;
             }
 
+            const values = [forwardRequest, signature]
 
-            this.nonces[chainId][keyIndex]++;
-
-            const receipt = await provider.waitForTransaction(transactionHash);
-            if (receipt.logs.length === 0 || (chainId === 137 && receipt.logs.length === 1)) {
-                console.log("ERROR: Transaction " + transactionHash + " failed!");
-                // Simulate the transaction to get the revert reason
-                try {
-                    const tx = await provider.getTransaction(transactionHash);
-                    delete tx.gasPrice;
-                    tx.blockTag = receipt.blockNumber;
-                    await provider.call(tx); // Using `eth_call` to simulate the transaction
-                } catch (error) {
-                    console.log("Reason: ", error.reason);
-                    return {receipt: receipt, reason: error.reason};
+            if (func === "executeWithPrice") {
+                if (pairId === undefined || pairId === null) {
+                    return {receipt: null, reason: "Pair ID not provided."};
                 }
+                let PriceData = this.latestPriceData[pairId];
+                const timenow = Math.floor(Date.now() / 1000)
+                
+                if (!PriceData) {
+                    console.log("ERROR: Price data not found!");
+                    return {receipt: null, reason: "Node failed to get price data."};
+                }
+
+                while(PriceData.timestamp <= timenow) {
+                    await new Promise(r => setTimeout(r, 200));
+                    PriceData = this.latestPriceData[pairId];
+                }
+
+                values.push([
+                    PriceData.provider,
+                    PriceData.is_closed,
+                    PriceData.asset,
+                    PriceData.price,
+                    PriceData.spread,
+                    PriceData.timestamp,
+                    PriceData.signature
+                ]);
             }
-            console.log("INFO: Transaction " + transactionHash + " successful!");
-            return {receipt: receipt};
-        } catch(err) {
-            console.log(err.reason ?? err.message);
-            return {receipt: null, reason: "Node failed to send transaction."};
+
+            const transaction = {
+                from: await signer.getAddress(),
+                to: await contract.getAddress(),
+                chainId: chainId,
+                nonce: this.nonces[chainId][keyIndex],
+                gasLimit: gasLimit,
+                maxFeePerGas: this.gasData[chainId],
+                maxPriorityFeePerGas: this.gasData[chainId],
+                data: contract.interface.encodeFunctionData(func, values)
+            };
+
+            const signedTransaction = await signer.signTransaction(transaction);
+
+            try {
+                let transactionHash;
+                try {
+                    transactionHash = await provider.send('eth_sendRawTransaction', [signedTransaction]);
+                } catch {
+                    console.log("WARNING: Private RPC failed, trying public.");
+                    transactionHash = await publicProvider.send('eth_sendRawTransaction', [signedTransaction]);
+                }
+
+
+                this.nonces[chainId][keyIndex]++;
+
+                const receipt = await provider.waitForTransaction(transactionHash);
+                if (receipt.logs.length === 0 || (chainId === 137 && receipt.logs.length === 1)) {
+                    console.log("ERROR: Transaction " + transactionHash + " failed!");
+                    // Simulate the transaction to get the revert reason
+                    try {
+                        const tx = await provider.getTransaction(transactionHash);
+                        delete tx.gasPrice;
+                        tx.blockTag = receipt.blockNumber;
+                        await provider.call(tx); // Using `eth_call` to simulate the transaction
+                    } catch (error) {
+                        console.log("Reason: ", error.reason);
+                        return {receipt: receipt, reason: error.reason};
+                    }
+                }
+                console.log("INFO: Transaction " + transactionHash + " successful!");
+                return {receipt: receipt};
+            } catch(err) {
+                console.log(err.reason ?? err.message);
+                return {receipt: null, reason: "Node failed to send transaction."};
+            }
+        }
+
+        const result = await fn(_forwardRequest, _signature, _orderType, _chainId, _pairId, _gasLimit);
+
+        if (!result.reason) {
+            _res.status(200).json(result);
+        } else {
+            _res.status(400).json(result);
         }
     }
 
