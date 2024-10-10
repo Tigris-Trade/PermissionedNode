@@ -192,8 +192,8 @@ class App {
 
         this.oracleSocket = socketio(
             new Date().getTimezoneOffset() > 120 ?
-                'https://us1.tigrisoracle.net' :
-                'https://eu1.tigrisoracle.net',
+                'https://us1oracle.tigris.trade' :
+                'https://eu1oracle.tigris.trade',
             {transports: ['websocket'] }
         );
 
