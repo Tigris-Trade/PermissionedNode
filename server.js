@@ -99,6 +99,10 @@ class App {
             throw new Error(`MISSING DISPLAY NAME.\nSET IT IN THE ".env" FILE USING DISPLAY_NAME=<name>.\n`);
         }
 
+        if (process.env["ORACLE_URL"] === undefined) {
+            throw new Error(`MISSING ORACLE URL.\nSET IT IN THE ".env" FILE USING ORACLE_URL=<name>.\n`);
+        }
+
         // Log all the addresses
         for (let i = 0; i < this.privs.length; i++) {
             console.log(`Relayer #${i}: ${new ethers.Wallet(this.privs[i]).address}`);
@@ -191,9 +195,7 @@ class App {
         });
 
         this.oracleSocket = socketio(
-            new Date().getTimezoneOffset() > 120 ?
-                'https://us1oracle.tigris.trade' :
-                'https://eu1oracle.tigris.trade',
+            process.env.ORACLE_URL,
             {transports: ['websocket'] }
         );
 
