@@ -18,17 +18,12 @@
       },
       {
         "internalType": "address",
-        "name": "_lpstaking",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_xtig",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
         "name": "_referrals",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_vault",
         "type": "address"
       }
     ],
@@ -209,6 +204,12 @@
       {
         "indexed": false,
         "internalType": "uint256",
+        "name": "addMarginBeforeFees",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
         "name": "addMargin",
         "type": "uint256"
       },
@@ -228,19 +229,13 @@
       {
         "indexed": false,
         "internalType": "address",
-        "name": "tigAsset",
+        "name": "marginAsset",
         "type": "address"
       },
       {
         "indexed": false,
         "internalType": "uint256",
         "name": "daoFees",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "burnFees",
         "type": "uint256"
       },
       {
@@ -289,9 +284,9 @@
     "inputs": [
       {
         "indexed": false,
-        "internalType": "uint256",
-        "name": "asset",
-        "type": "uint256"
+        "internalType": "string",
+        "name": "pair",
+        "type": "string"
       },
       {
         "indexed": false,
@@ -365,6 +360,12 @@
         "internalType": "bool",
         "name": "isMarginAdded",
         "type": "bool"
+      },
+      {
+        "indexed": false,
+        "internalType": "int256",
+        "name": "marginDelta",
+        "type": "int256"
       },
       {
         "indexed": false,
@@ -485,19 +486,14 @@
             "type": "address"
           },
           {
-            "internalType": "address",
-            "name": "stableVault",
-            "type": "address"
-          },
-          {
             "internalType": "uint256",
             "name": "leverage",
             "type": "uint256"
           },
           {
-            "internalType": "uint256",
-            "name": "asset",
-            "type": "uint256"
+            "internalType": "bytes32",
+            "name": "pair32",
+            "type": "bytes32"
           },
           {
             "internalType": "bool",
@@ -598,16 +594,6 @@
         "type": "uint256"
       },
       {
-        "internalType": "address",
-        "name": "_stableVault",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_marginAsset",
-        "type": "address"
-      },
-      {
         "internalType": "uint256",
         "name": "_addMargin",
         "type": "uint256"
@@ -667,9 +653,9 @@
             "type": "bool"
           },
           {
-            "internalType": "uint256",
-            "name": "asset",
-            "type": "uint256"
+            "internalType": "bytes32",
+            "name": "pair32",
+            "type": "bytes32"
           },
           {
             "internalType": "uint256",
@@ -710,16 +696,6 @@
         "type": "uint256"
       },
       {
-        "internalType": "address",
-        "name": "_stableVault",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_marginAsset",
-        "type": "address"
-      },
-      {
         "internalType": "uint256",
         "name": "_addMargin",
         "type": "uint256"
@@ -779,9 +755,9 @@
             "type": "bool"
           },
           {
-            "internalType": "uint256",
-            "name": "asset",
-            "type": "uint256"
+            "internalType": "bytes32",
+            "name": "pair32",
+            "type": "bytes32"
           },
           {
             "internalType": "uint256",
@@ -856,11 +832,6 @@
       },
       {
         "internalType": "uint256",
-        "name": "burnFees",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
         "name": "refDiscount",
         "type": "uint256"
       },
@@ -888,19 +859,14 @@
             "type": "address"
           },
           {
-            "internalType": "address",
-            "name": "stableVault",
-            "type": "address"
-          },
-          {
             "internalType": "uint256",
             "name": "leverage",
             "type": "uint256"
           },
           {
-            "internalType": "uint256",
-            "name": "asset",
-            "type": "uint256"
+            "internalType": "bytes32",
+            "name": "pair32",
+            "type": "bytes32"
           },
           {
             "internalType": "bool",
@@ -1005,9 +971,9 @@
             "type": "bool"
           },
           {
-            "internalType": "uint256",
-            "name": "asset",
-            "type": "uint256"
+            "internalType": "bytes32",
+            "name": "pair32",
+            "type": "bytes32"
           },
           {
             "internalType": "uint256",
@@ -1065,9 +1031,9 @@
             "type": "bool"
           },
           {
-            "internalType": "uint256",
-            "name": "asset",
-            "type": "uint256"
+            "internalType": "bytes32",
+            "name": "pair32",
+            "type": "bytes32"
           },
           {
             "internalType": "uint256",
@@ -1120,9 +1086,9 @@
             "type": "bool"
           },
           {
-            "internalType": "uint256",
-            "name": "asset",
-            "type": "uint256"
+            "internalType": "bytes32",
+            "name": "pair32",
+            "type": "bytes32"
           },
           {
             "internalType": "uint256",
@@ -1182,16 +1148,6 @@
       },
       {
         "internalType": "address",
-        "name": "_stableVault",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_outputToken",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
         "name": "_trader",
         "type": "address"
       },
@@ -1208,9 +1164,9 @@
             "type": "bool"
           },
           {
-            "internalType": "uint256",
-            "name": "asset",
-            "type": "uint256"
+            "internalType": "bytes32",
+            "name": "pair32",
+            "type": "bytes32"
           },
           {
             "internalType": "uint256",
@@ -1258,19 +1214,14 @@
             "type": "address"
           },
           {
-            "internalType": "address",
-            "name": "stableVault",
-            "type": "address"
-          },
-          {
             "internalType": "uint256",
             "name": "leverage",
             "type": "uint256"
           },
           {
-            "internalType": "uint256",
-            "name": "asset",
-            "type": "uint256"
+            "internalType": "bytes32",
+            "name": "pair32",
+            "type": "bytes32"
           },
           {
             "internalType": "bool",
@@ -1352,9 +1303,9 @@
             "type": "bool"
           },
           {
-            "internalType": "uint256",
-            "name": "asset",
-            "type": "uint256"
+            "internalType": "bytes32",
+            "name": "pair32",
+            "type": "bytes32"
           },
           {
             "internalType": "uint256",
@@ -1424,11 +1375,6 @@
       },
       {
         "internalType": "uint256",
-        "name": "burnFees",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
         "name": "refDiscount",
         "type": "uint256"
       },
@@ -1481,16 +1427,6 @@
         "type": "uint256"
       },
       {
-        "internalType": "address",
-        "name": "_stableVault",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_outputToken",
-        "type": "address"
-      },
-      {
         "internalType": "uint256",
         "name": "_removeMargin",
         "type": "uint256"
@@ -1513,9 +1449,9 @@
             "type": "bool"
           },
           {
-            "internalType": "uint256",
-            "name": "asset",
-            "type": "uint256"
+            "internalType": "bytes32",
+            "name": "pair32",
+            "type": "bytes32"
           },
           {
             "internalType": "uint256",
@@ -1558,24 +1494,6 @@
   {
     "inputs": [
       {
-        "internalType": "address",
-        "name": "_stableVault",
-        "type": "address"
-      },
-      {
-        "internalType": "bool",
-        "name": "_bool",
-        "type": "bool"
-      }
-    ],
-    "name": "setAllowedVault",
-    "outputs": [],
-    "stateMutability": "payable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
         "internalType": "bool",
         "name": "_open",
         "type": "bool"
@@ -1583,11 +1501,6 @@
       {
         "internalType": "uint256",
         "name": "_daoFees",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_burnFees",
         "type": "uint256"
       },
       {
@@ -1620,19 +1533,6 @@
       }
     ],
     "name": "setLPDistribution",
-    "outputs": [],
-    "stateMutability": "payable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_lpstaking",
-        "type": "address"
-      }
-    ],
-    "name": "setLPStaking",
     "outputs": [],
     "stateMutability": "payable",
     "type": "function"
@@ -1729,6 +1629,19 @@
     "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_vault",
+        "type": "address"
+      }
+    ],
+    "name": "setVault",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "timeDelay",
     "outputs": [
@@ -1802,9 +1715,9 @@
             "type": "bool"
           },
           {
-            "internalType": "uint256",
-            "name": "asset",
-            "type": "uint256"
+            "internalType": "bytes32",
+            "name": "pair32",
+            "type": "bytes32"
           },
           {
             "internalType": "uint256",

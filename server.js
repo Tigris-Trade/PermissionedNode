@@ -3,7 +3,6 @@ const ethers = require('ethers');
 const socketio = require("socket.io-client");
 const forwarderABI = require("./contracts/forwarderABI.json");
 const tradingABI = require("./contracts/tradingABI.json");
-const optionsABI = require("./contracts/optionsABI.json");
 const arbgasABI = require("./contracts/arbgasABI.json");
 const cors = require('cors');
 const https= require("https")
@@ -17,7 +16,7 @@ const sslOptions = {
     cert: process.env.SSL_CERT_PATH && fs.readFileSync(process.env.SSL_CERT_PATH)
 };
 
-const EMPTY_PRICE_DATA = ["0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", false, 0, 0, 0, 0, ethers.zeroPadBytes("0x", 65)];
+const EMPTY_PRICE_DATA = ["0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", false, ethers.zeroPadBytes("0x", 32), 0, 0, 0, ethers.zeroPadBytes("0x", 65)];
 
 class App {
 
@@ -32,11 +31,6 @@ class App {
             42161: "0xd89B4B1C8918150f137cc68E83E3876F9e309aB9",
             137: "0xA35eabB4be62Ed07E88c2aF73234fe7dD48a73D4",
             82: "0xD1705f847b421b6C0bb31e649fBA1983257B77D3"
-        }
-        this.optionsAddress = {
-            42161: "0x8895b0B946b3d5bCd7D1E9E31DCfaeB51644922A",
-            137: "0xFeABeC2CaC8A1A2f1C0c181572aA88c8b91288B2",
-            82: "0xDa3662a982625e1f2649b0a1e571207C0D87B76E"
         }
         this.gasLimits = {
             42161: 4000000,
@@ -249,10 +243,7 @@ class App {
                 req.body.orderType !== "addMargin" &&
                 req.body.orderType !== "removeMargin" &&
                 req.body.orderType !== "cancelLimitOrder" &&
-                req.body.orderType !== "updateTpSl" &&
-                // Options
-                req.body.orderType !== "openTrade" &&
-                req.body.orderType !== "initiateLimitOrder"
+                req.body.orderType !== "updateTpSl"
             ) {
                 res.status(400).json({reason: "Unknown order type!"});
                 return;
@@ -268,18 +259,17 @@ class App {
                 return;
             }
             if (
-                req.body.to !== this.tradingAddress[req.body.chainId] &&
-                req.body.to !== this.optionsAddress[req.body.chainId]
+                req.body.to !== this.tradingAddress[req.body.chainId]
             ) {
                 res.status(400).json({reason: "Invalid contract address!"});
                 return;
             }
-            if (req.body.pairId) {
-                if (!this.latestPriceData[req.body.pairId]) {
-                    res.status(400).json({reason: "Unknown pair ID!"});
+            if (req.body.pairName) {
+                if (!this.latestPriceData[req.body.pairName]) {
+                    res.status(400).json({reason: "Unknown pair!"});
                     return;
                 } else {
-                    if (this.latestPriceData[req.body.pairId].is_closed) {
+                    if (this.latestPriceData[req.body.pairName].is_closed) {
                         res.status(400).json({reason: "Market is closed!"});
                         return;
                     }
@@ -310,7 +300,7 @@ class App {
                 req.body.data
             ];
             const signature = req.body.signature;
-            const result = await this.execute(request, signature, orderType, req.body.chainId, req.body.pairId, state.gasLimit, res);
+            const result = await this.execute(request, signature, orderType, req.body.chainId, req.body.pairName, state.gasLimit, res);
         });
 
         this.isGettingReady = true;
@@ -336,18 +326,10 @@ class App {
     }
 
     checkAbi(data, orderType) {
-        let contractInterface;
-        if (
-            orderType === "openTrade" ||
-            orderType === "initiateLimitOrder"
-        ) {
-            contractInterface = new ethers.Interface(optionsABI);
-        } else {
-            contractInterface = new ethers.Interface(tradingABI);
-        }
+        const contractInterface = new ethers.Interface(tradingABI);
 
         let EMPTY_PRICE_DATA_BYTES = ethers.AbiCoder.defaultAbiCoder().encode(
-            ["tuple(address,bool,uint256,uint256,uint256,uint256,bytes)"],
+            ["tuple(address,bool,bytes32,uint256,uint256,uint256,bytes)"],
             [EMPTY_PRICE_DATA]
         );
 
@@ -475,8 +457,8 @@ class App {
         console.log("INFO: Node is ready!");
     }
 
-    async execute(_forwardRequest, _signature, _orderType, _chainId, _pairId, _gasLimit, _res) {
-        const fn = async (forwardRequest, signature, orderType, chainId, pairId, gasLimit) => {
+    async execute(_forwardRequest, _signature, _orderType, _chainId, _pairName, _gasLimit, _res) {
+        const fn = async (forwardRequest, signature, orderType, chainId, pairName, gasLimit) => {
             const keyIndex = this.keyIndex++%10;
 
             const contract = this.forwarderContract[chainId][keyIndex];
@@ -511,21 +493,15 @@ class App {
                 case "updateTpSl":
                     func = "executeWithPrice";
                     break;
-                case "openTrade":
-                    func = "executeWithPrice";
-                    break;
-                case "initiateLimitOrder":
-                    func = "executeWithoutPrice";
-                    break;
             }
 
             const values = [forwardRequest, signature]
 
             if (func === "executeWithPrice") {
-                if (pairId === undefined || pairId === null) {
-                    return {receipt: null, reason: "Pair ID not provided."};
+                if (pairName === undefined || pairName === null) {
+                    return {receipt: null, reason: "Pair not provided."};
                 }
-                let PriceData = this.latestPriceData[pairId];
+                let PriceData = this.latestPriceData[pairName];
                 const timenow = Math.floor(Date.now() / 1000)
                 
                 if (!PriceData) {
@@ -535,7 +511,7 @@ class App {
 
                 while(PriceData.timestamp <= timenow) {
                     await new Promise(r => setTimeout(r, 200));
-                    PriceData = this.latestPriceData[pairId];
+                    PriceData = this.latestPriceData[pairName];
                 }
 
                 values.push([
@@ -596,7 +572,7 @@ class App {
             }
         }
 
-        const result = await fn(_forwardRequest, _signature, _orderType, _chainId, _pairId, _gasLimit);
+        const result = await fn(_forwardRequest, _signature, _orderType, _chainId, _pairName, _gasLimit);
 
         if (!result.reason) {
             _res.status(200).json(result);
