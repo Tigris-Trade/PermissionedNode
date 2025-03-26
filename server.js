@@ -28,7 +28,7 @@ class App {
             82: "0x71B3EdDD0628875C22ec49D8D1E0eEE20759945E"
         };
         this.tradingAddress = {
-            42161: "0xEe8Dfc84c9401FF41a796E585EA7a6A8F3a47940",
+            42161: "0xdda6923351BF1d49fae05020EFeF16F700d1d74A",
             137: "0xA35eabB4be62Ed07E88c2aF73234fe7dD48a73D4",
             82: "0xD1705f847b421b6C0bb31e649fBA1983257B77D3"
         }
