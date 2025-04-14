@@ -434,6 +434,12 @@
         "internalType": "address",
         "name": "executor",
         "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "int256",
+        "name": "accInterest",
+        "type": "int256"
       }
     ],
     "name": "PositionClosed",
@@ -465,6 +471,12 @@
         "internalType": "address",
         "name": "executor",
         "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "int256",
+        "name": "accInterest",
+        "type": "int256"
       }
     ],
     "name": "PositionLiquidated",
